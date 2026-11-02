@@ -527,8 +527,7 @@ async function scanQR(){
 const VERSION='1.0';
 const NOTES=[
   {v:'1.0',d:'2 novembre 2026',t:'Benvenuto',sec:[
-    ['🎯','Il gioco',['A turno un Sensitivo vede il bersaglio e dà un indizio, gli altri girano la lancetta per indovinare','Punti 4 / 3 / 2 in base a quanto vi avvicinate: il Sensitivo prende la media del gruppo','Più di 70 carte in italiano, da "Freddo ↔ Caldo" a "Da aperitivo ↔ Da club alle 4"']],
-    ['📱','Come si gioca',['Online: ognuno dal proprio telefono, con stanze a codice di 4 lettere, QR e link d\'invito','Un solo telefono: ve lo passate a turno, "Ognuno per sé" oppure "Tutti insieme"','Il Sensitivo vede le lancette degli altri muoversi in diretta']],
+    ['🎮','Modalità',['Online, ognuno dal proprio telefono, con stanze a codice di 4 lettere, QR e link d\'invito','Un solo telefono da passarsi a turno, in versione "Ognuno per sé" o "Tutti insieme"','Lancette degli altri visibili in diretta per il Sensitivo','Più di 70 carte in italiano']],
     ['👤','Account e amici',['Si gioca subito come ospite, oppure con un account e un nome utente unico','Amici, richieste e inviti nella stanza con un tocco','Profilo con livello, statistiche, anima gemella e indizio migliore']],
     ['✨','Effetti',['Quadrante animato, sportello che si apre sul bersaglio, coriandoli e podio finale','Suoni ed effetti, con il tasto per spegnerli','Immagine del risultato da condividere nelle storie','Rivincita con un tocco']]
   ]}
