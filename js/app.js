@@ -78,7 +78,7 @@ function level(xp){return{lv:Math.floor(xp/500)+1,cur:xp%500}}
 
 const SCREENS={
   welcome:()=>`
-    <div class="topline slim"><span></span><button type="button" class="linkbtn plain" data-go="login">${ICON.user} Accedi</button></div>
+    <div class="topline slim">${soundBtn('iconbtn sm sndb')}<button type="button" class="linkbtn plain" data-go="login">${ICON.user} Accedi</button></div>
     ${homeErr?`<div class="err">${esc(homeErr)}</div>`:''}
     ${webOk?'':`<div class="err">Stai aprendo il gioco come file o in anteprima: per giocare con gli amici caricalo online (es. GitHub Pages) e apri quel link.</div>`}
     <div class="hero2">
@@ -114,7 +114,7 @@ const SCREENS={
     return`
     <div class="acct-top">
       <button type="button" class="mechip" data-go="stats">${av({name:profile.username,color:profile.color},'sm')}<b>${nm(profile)}</b>${L?`<span class="lv">LV ${L.lv}</span>`:''}</button>
-      <button type="button" class="iconbtn" data-go="amici" aria-label="Amici e richieste">${ICON.bell}${friends.incoming.length?'<span class="dotb"></span>':''}</button>
+      <span class="tr">${soundBtn('iconbtn sndb')}<button type="button" class="iconbtn" data-go="amici" aria-label="Amici e richieste">${ICON.bell}${friends.incoming.length?'<span class="dotb"></span>':''}</button></span>
     </div>
     ${homeErr?`<div class="err">${esc(homeErr)}</div>`:''}
     <div class="hero2 compact">
@@ -238,6 +238,8 @@ async function go(a,el){
       if(a==='unfriend'&&!confirm('Rimuovere questo amico?'))return;
       await sbc.from('friendships').delete().or(`and(requester.eq.${id},addressee.eq.${profile.id}),and(requester.eq.${profile.id},addressee.eq.${id})`);
       await loadFriends();refresh();break}
+    case 'sound':{SFX.toggle();document.querySelectorAll('.sndbtn').forEach(b=>{b.innerHTML=soundIcon();b.setAttribute('aria-label',SFX.on?'Disattiva i suoni':'Attiva i suoni')});toast(SFX.on?'Suoni attivi 🔊':'Suoni disattivati 🔇',1500);break}
+    case 'share':if(code&&state)shareOnline();else if(typeof L!=='undefined'&&L)shareLocal();break;
     case 'invite':{el.disabled=true;await sendInvite(id,code);renderInviteFriends();break}
     default:if(typeof LOCAL_GO!=='undefined'&&LOCAL_GO[a])LOCAL_GO[a](el);
   }
@@ -448,7 +450,7 @@ function startUserRealtime(){
   userCh=sbc.channel('user-'+profile.id)
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'invites',filter:'to_id=eq.'+profile.id},async({new:inv})=>{
       await fetchProfiles([inv.from_id]);invites=[inv,...invites.filter(x=>x.id!==inv.id)];
-      const p=profCache[inv.from_id];buzz([30,60,30]);
+      const p=profCache[inv.from_id];buzz([30,60,30]);SFX.chime();
       if(code)toast(`${p?p.username:'Un amico'} ti invita nella stanza ${inv.room_code}`,5000);
       else{toast(`${p?p.username:'Un amico'} ti ha invitato a giocare!`,4000);refresh()}
     })
@@ -509,8 +511,9 @@ async function scanQR(){
 }
 
 // ===== Versione e patch notes =====
-const VERSION='2.2';
+const VERSION='2.3';
 const NOTES=[
+  {v:'2.3',d:'2 novembre 2026',t:'Suoni e risultati da condividere',l:['Effetti sonori: tic della lancetta, rullo di tamburi prima della rivelazione, festa per il centro pieno e fanfara finale','Tasto con l\'altoparlante per accendere o spegnere i suoni','A fine partita "Condividi il risultato" crea un\'immagine in formato storia con podio e indizio della partita','Funziona sia online sia su un solo telefono']},
   {v:'2.2',d:'2 novembre 2026',t:'Un solo telefono',l:['Nuova modalità per giocare in compagnia passandovi un solo telefono, senza creare stanze','Due modi: "Ognuno per sé" con classifica individuale, oppure "Tutti insieme" con punteggio di squadra','Schermate di passaggio del telefono, così nessuno sbircia il bersaglio o le risposte degli altri','Le partite su un solo telefono non contano nelle statistiche']},
   {v:'2.1',d:'2 novembre 2026',t:'Home più pulita',l:['Anche la home con account ha il quadrante, i due riquadri affiancati e solo inviti e amici online','Il quadrante animato è il protagonista della home','Solo due riquadri affiancati: Crea una stanza a sinistra, Entra in una stanza a destra','Il nome da ospite si chiede solo quando inizi a giocare, e poi si ricorda','Accesso e regole diventano link discreti in basso','Le regole si aprono in un pannello a passi']},
   {v:'2.0',d:'2 novembre 2026',t:'Account, amici e statistiche',l:['Si gioca subito come ospite: scrivi un nome e diventi anon_nome','Accesso con email o Google e nome utente unico scelto da te','Home separata tra "Crea una stanza" ed "Entra in una stanza"','Schermata per entrare con il codice o scansionando il QR','Amici: cerca per nome utente, richieste, chi è online e in quale stanza','Invita gli amici nella tua stanza con un tocco, anche se sono offline','Profilo con livello, partite, vittorie, centri, anima gemella e indizio migliore','Le partite giocate con un account vengono salvate automaticamente']},

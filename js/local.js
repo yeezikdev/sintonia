@@ -101,7 +101,7 @@ const L_VIEWS={
       <div class="ri anim psyrow" style="animation-delay:${(1.7+gs.length*.12).toFixed(2)}s">${av(LP(L.psy))}<div>${nm(LP(L.psy))}<br><span class="m">Sensitivo · media del gruppo</span></div><b class="pts">+${L.pts.psy||0}</b></div></div>
       <button type="button" class="btn primary big" data-go="l-nextround">${last?'Vedi la classifica 🏆':'Prossimo round →'}</button>`},
   end:()=>{
-    const again=`<button type="button" class="btn primary big" data-go="l-again">Gioca ancora</button><button type="button" class="btn ghost big" data-go="l-home" style="margin-top:10px">Torna alla home</button>`;
+    const again=`<button type="button" class="btn big sharebtn" data-go="share">📸 Condividi il risultato</button><button type="button" class="btn primary big" data-go="l-again" style="margin-top:10px">Gioca ancora</button><button type="button" class="btn ghost big" data-go="l-home" style="margin-top:10px">Torna alla home</button>`;
     if(L.mode==='team'){const max=L.total*4,pct=Math.round(L.team/max*100);
       const verdict=pct>=75?'Mente alveare! 🧠':pct>=55?'Ottima sintonia!':pct>=35?'Non male, ci siete quasi':'Serve più allenamento 😅';
       return`<h2>Risultato della squadra</h2><p class="hint">${verdict}</p>
@@ -118,11 +118,12 @@ BIND.local=()=>{
   if(!L)return goHome();
   const S=L,pct=Math.min(100,(S.round+1)/S.total*100);
   const scores=S.mode==='team'?`<span class="sc"><span class="av sm" style="--c:#ffd23f">★</span>Squadra <b>${S.team}</b></span>`:[...S.players].sort((a,b)=>b.score-a.score).map(p=>`<span class="sc ${S.players.indexOf(p)===S.psy&&S.phase!=='end'?'psy':''}">${av(p,'sm')}${nm(p)} <b>${p.score}</b></span>`).join('');
-  $('#top').innerHTML=`<div class="bar"><span class="codechip">${ICON.phone.replace('width="28" height="28"','width="16" height="16"')} Offline</span>${S.phase!=='end'?`<span class="rnd">Round ${Math.min(S.round+1,S.total)}/${S.total}<span class="prog"><span style="width:${pct}%"></span></span></span>`:''}<button class="exit" data-go="l-exit" aria-label="Esci dalla partita"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Esci</button></div><div class="scores">${scores}</div>`;
+  $('#top').innerHTML=`<div class="bar"><span class="codechip">${ICON.phone.replace('width="28" height="28"','width="16" height="16"')} Offline</span>${S.phase!=='end'?`<span class="rnd">Round ${Math.min(S.round+1,S.total)}/${S.total}<span class="prog"><span style="width:${pct}%"></span></span></span>`:''}${soundBtn('iconbtn sm sndb')}<button class="exit" data-go="l-exit" aria-label="Esci dalla partita"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Esci</button></div><div class="scores">${scores}</div>`;
   bindDial();
   const ci=$('#lclue');if(ci){ci.oninput=()=>{L.clue=ci.value};ci.onkeydown=e=>{if(e.key==='Enter')go('l-clue')}}
-  if(S.phase==='reveal'){buzz([20,60,20]);if(Object.values(S.pts).includes(4)&&(S.mode==='team'?S.pts.team===4:Object.entries(S.pts).some(([k,v])=>k!=='psy'&&v===4)))confetti(150,1900)}
-  if(S.phase==='end')confetti(200,1200);
+  if(S.phase==='reveal'){SFX.reveal(S.mode==='team'?1:Object.keys(S.guesses).length,S.mode==='team'?S.pts.team===4:Object.entries(S.pts).some(([k,v])=>k!=='psy'&&v===4));buzz([20,60,20]);if(Object.values(S.pts).includes(4)&&(S.mode==='team'?S.pts.team===4:Object.entries(S.pts).some(([k,v])=>k!=='psy'&&v===4)))confetti(150,1900)}
+  if(S.phase==='end'){confetti(200,1200);SFX.fanfare(1)}
+  if(/^pass/.test(S.phase))SFX.whoosh();
 };
 function lgo(phase){L.phase=phase;$('#app').innerHTML=SCREENS.local();enterAnim();BIND.local();window.scrollTo(0,0)}
 
@@ -137,7 +138,7 @@ const LOCAL_GO={
   'l-next':()=>{if(L.phase==='pass-psy')lgo('psy');else{myGuess=50;lgo('guess')}},
   'l-reroll':()=>{let k;do{k=Math.floor(Math.random()*CARDS.length)}while(L.used.includes(k));L.used.push(k);L.card=CARDS[k];const e=$('#ends');if(e){e.innerHTML=`<span>${esc(L.card[0])}</span><span>${esc(L.card[1])}</span>`;e.classList.remove('swap');void e.offsetWidth;e.classList.add('swap')}},
   'l-clue':()=>{const ci=$('#lclue');L.clue=ci?ci.value.trim().slice(0,60):'';buzz(20);lgo(L.mode==='team'?'pass-team':'pass-g')},
-  'l-guess':()=>{buzz(25);L.guesses[L.queue[0]]=myGuess;L.queue.shift();lgo(L.queue.length?'pass-g':'pass-reveal')},
+  'l-guess':()=>{buzz(25);SFX.pop();L.guesses[L.queue[0]]=myGuess;L.queue.shift();lgo(L.queue.length?'pass-g':'pass-reveal')},
   'l-reveal':()=>{lReveal();lgo('reveal')},
   'l-nextround':()=>{L.round++;if(L.round>=L.total)lgo('end');else{startLocalRound();lgo('pass-psy')}},
   'l-again':()=>{const names=L.players.map(p=>p.name);lsetup={mode:L.mode,laps:L.laps,names};startLocal()},

@@ -82,7 +82,7 @@ function paintLive(){
 function setNeedle(v){const n=document.querySelector('.dial.live .needle');if(n)n.style.transform=`rotate(${rot(v)}deg)`}
 function bindDial(){
   const svg=document.querySelector('.dial.live');if(!svg)return;let drag=false,last=-1;
-  const upd=e=>{const r=svg.getBoundingClientRect();const x=(e.clientX-r.left)/r.width*VW,y=(e.clientY-r.top)/r.height*VH;let a=Math.atan2(CY-y,x-CX);if(a<0)a=x<CX?Math.PI:0;myGuess=Math.round((1-a/Math.PI)*100);setNeedle(myGuess);sendLive();const b=Math.floor(myGuess/10);if(b!==last){if(last>=0)buzz(4);last=b}};
+  const upd=e=>{const r=svg.getBoundingClientRect();const x=(e.clientX-r.left)/r.width*VW,y=(e.clientY-r.top)/r.height*VH;let a=Math.atan2(CY-y,x-CX);if(a<0)a=x<CX?Math.PI:0;myGuess=Math.round((1-a/Math.PI)*100);if(myGuess!==bindDial._v){bindDial._v=myGuess;SFX.tick()}setNeedle(myGuess);sendLive();const b=Math.floor(myGuess/10);if(b!==last){if(last>=0)buzz(4);last=b}};
   svg.addEventListener('pointerdown',e=>{drag=true;svg.classList.add('dragging');try{svg.setPointerCapture(e.pointerId)}catch(_){}upd(e)});
   svg.addEventListener('pointermove',e=>{if(drag)upd(e)});
   ['pointerup','pointercancel'].forEach(t=>svg.addEventListener(t,()=>{drag=false;svg.classList.remove('dragging')}));
@@ -231,7 +231,8 @@ const VIEWS={
     const pod=top.map((p,i)=>p?`<div class="pod ${cls[i]}" style="--d:${delay[i]}s">${i===1?'<div class="crown">👑</div>':''}${av(p,'lg')}<div class="nm">${nm(p)}</div><div class="col"><small>${medal[i]}</small>${p.score}</div></div>`:'').join('');
     const rest=sorted.slice(3).map((p,i)=>`<div class="ri" style="animation-delay:${(1.8+i*.1).toFixed(2)}s"><span class="pos">${i+4}</span>${av(p)}${nm(p)}<b>${p.score}</b></div>`).join('');
     return`<h2>Classifica finale</h2><p class="hint">Chi è più in sintonia con il gruppo?</p><div class="podium">${pod}</div>${rest?`<div class="res rest">${rest}</div>`:''}
-      ${isHost?`<button class="btn primary big" data-a="again">Nuova partita</button>`:`<p class="wait">L'host può avviare una nuova partita.</p>`}
+      <button class="btn big sharebtn" data-go="share">📸 Condividi il risultato</button>
+      ${isHost?`<button class="btn primary big" data-a="again" style="margin-top:10px">Nuova partita</button>`:`<p class="wait">L'host può avviare una nuova partita.</p>`}
       <button class="btn ghost big" data-a="exit-end" style="margin-top:10px">Torna alla home</button>`;
   }
 };
@@ -242,7 +243,7 @@ function renderTop(){
   if(changed.length){bumpSet=new Set(changed);bumpPhase=S.phase}else if(S.phase!==bumpPhase)bumpSet=new Set();
   prevScores=Object.fromEntries(S.players.map(p=>[p.id,p.score]));
   const pct=S.total?Math.min(100,(S.round+1)/S.total*100):0;
-  $('#top').innerHTML=`<div class="bar"><button class="codechip" data-a="copy">🔗 ${esc(code)}</button>${inGame&&S.phase!=='end'?`<span class="rnd">Round ${Math.min(S.round+1,S.total)}/${S.total}<span class="prog"><span style="width:${pct}%"></span></span></span>`:''}<button class="exit" data-a="exit" aria-label="Esci dalla partita"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Esci</button></div>
+  $('#top').innerHTML=`<div class="bar"><button class="codechip" data-a="copy">🔗 ${esc(code)}</button>${inGame&&S.phase!=='end'?`<span class="rnd">Round ${Math.min(S.round+1,S.total)}/${S.total}<span class="prog"><span style="width:${pct}%"></span></span></span>`:''}${soundBtn('iconbtn sm sndb')}<button class="exit" data-a="exit" aria-label="Esci dalla partita"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Esci</button></div>
   ${inGame?`<div class="scores">${sorted.map(p=>`<span class="sc ${online.has(p.id)?'':'off'} ${p.id===S.psychicId&&S.phase!=='end'?'psy':''} ${bumpSet.has(p.id)?'bump':''}">${av(p,'sm')}${nm(p)} <b>${p.score}</b></span>`).join('')}</div>`:''}`;
 }
 function render(){
@@ -261,16 +262,16 @@ function render(){
     bindDial();
     const ci=$('#clue');if(ci){ci.oninput=e=>clueDraft=e.target.value;ci.onkeydown=e=>{if(e.key==='Enter')act('clue')}}
     const qr=$('#qr');if(qr&&window.QRCode){try{new QRCode(qr,{text:inviteLink(),width:150,height:150,colorDark:'#120f1f',colorLight:'#ffffff'})}catch(e){}}
-    if(S.phase==='reveal'&&prevPhase!=='reveal'){buzz([20,60,20]);if(Object.values(S.guesses).some(v=>scoreFor(Math.abs(v-S.target))===4))confetti(150,1900)}
-    if(S.phase==='end'&&prevPhase!=='end'){confetti(200,1500);setTimeout(()=>confetti(120),2600);if(window.recordMatch)recordMatch()}
-    if(S.phase==='clue'&&psy&&prevPhase!=='clue')buzz(30);
+    if(S.phase==='reveal'&&prevPhase!=='reveal'){buzz([20,60,20]);const anyBull=Object.values(S.guesses).some(v=>scoreFor(Math.abs(v-S.target))===4);SFX.reveal(Object.keys(S.guesses).length,anyBull);if(anyBull)confetti(150,1900)}
+    if(S.phase==='end'&&prevPhase!=='end'){confetti(200,1500);SFX.fanfare(1.2);setTimeout(()=>confetti(120),2600);if(window.recordMatch)recordMatch()}
+    if(S.phase==='clue'&&psy&&prevPhase!=='clue'){buzz(30);SFX.chime()}
   }
   updateDyn();
 }
 function updateDyn(){
   const S=state;
   const ends=$('#ends');if(ends&&S.card){const k=S.card.join('|');ends.innerHTML=`<span>${esc(S.card[0])}</span><span>${esc(S.card[1])}</span>`;if(lastCard&&lastCard!==k){ends.classList.remove('swap');void ends.offsetWidth;ends.classList.add('swap')}lastCard=k}
-  const pl=$('#plist');if(pl){pl.innerHTML=S.players.map(p=>{const isNew=!seenPlayers.has(p.id);return`<div class="pl ${online.has(p.id)?'':'off'} ${isNew?'new':''}">${av(p)}<span>${nm(p)}</span>${p.id===S.hostId?'<em>host</em>':''}${p.id===me.id?'<em>tu</em>':''}${isHost&&!online.has(p.id)&&p.id!==S.hostId?`<button class="x" data-a="kick" data-id="${p.id}">rimuovi</button>`:''}</div>`}).join('');S.players.forEach(p=>seenPlayers.add(p.id))}
+  const pl=$('#plist');if(pl){pl.innerHTML=S.players.map(p=>{const isNew=!seenPlayers.has(p.id);return`<div class="pl ${online.has(p.id)?'':'off'} ${isNew?'new':''}">${av(p)}<span>${nm(p)}</span>${p.id===S.hostId?'<em>host</em>':''}${p.id===me.id?'<em>tu</em>':''}${isHost&&!online.has(p.id)&&p.id!==S.hostId?`<button class="x" data-a="kick" data-id="${p.id}">rimuovi</button>`:''}</div>`}).join('');if(seenPlayers.size&&S.players.some(p=>!seenPlayers.has(p.id)&&p.id!==me.id))SFX.join();S.players.forEach(p=>seenPlayers.add(p.id))}
   const lp=$('#laps');if(lp)lp.innerHTML=[1,2,3].map(v=>`<button data-a="laps" data-v="${v}" class="${S.laps===v?'on':''}">${v}×</button>`).join('');
   const startB=$('#startBtn');if(startB){const few=S.players.length<2;startB.disabled=few;startB.textContent=few?'Servono almeno 2 giocatori':`Inizia la partita (${S.players.length} giocatori)`}
   const st=$('#status');if(st){const gs=S.players.filter(p=>p.id!==S.psychicId);st.innerHTML=`<div class="chips">${gs.map(p=>{const d=S.guesses[p.id]!=null;return`<span class="chip ${d?'done':''} ${online.has(p.id)?'':'off'}">${av(p,'sm')}${nm(p)} <span class="st">${d?'✅':'⏳'}</span></span>`}).join('')}</div>`}
@@ -289,10 +290,10 @@ function act(a,el){
     case 'laps':send({type:'laps',v:+el.dataset.v});break;
     case 'kick':send({type:'kick',id:el.dataset.id});break;
     case 'reroll':send({type:'reroll'});break;
-    case 'clue':{const ci=$('#clue');const c=ci?ci.value.trim():'';if(!c){toast('Scrivi un indizio');return}buzz(20);send({type:'clue',clue:c});break}
-    case 'm':myGuess=Math.max(0,myGuess-1);setNeedle(myGuess);sendLive();break;
-    case 'p':myGuess=Math.min(100,myGuess+1);setNeedle(myGuess);sendLive();break;
-    case 'guess':buzz(25);send({type:'guess',v:myGuess});break;
+    case 'clue':{const ci=$('#clue');const c=ci?ci.value.trim():'';if(!c){toast('Scrivi un indizio');return}buzz(20);SFX.whoosh();send({type:'clue',clue:c});break}
+    case 'm':myGuess=Math.max(0,myGuess-1);SFX.tick();setNeedle(myGuess);sendLive();break;
+    case 'p':myGuess=Math.min(100,myGuess+1);SFX.tick();setNeedle(myGuess);sendLive();break;
+    case 'guess':buzz(25);SFX.pop();send({type:'guess',v:myGuess});break;
     case 'unguess':send({type:'unguess'});break;
     case 'reveal':send({type:'reveal'});break;
     case 'skip':if(confirm('Saltare questo round? Nessuno prende punti.'))send({type:'skip'});break;
