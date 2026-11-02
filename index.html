@@ -447,6 +447,17 @@ h3.pink{color:#ff7d8f}
 .lvbar.big{display:block;height:12px;margin-top:14px}
 .stab{margin:0 0 14px}
 .stab button svg{vertical-align:-3px}
+
+/* ===== spazio per tacca e barra di stato (app sulla schermata Home) ===== */
+#top{padding-top:env(safe-area-inset-top)}
+#top:empty+main{padding-top:calc(16px + env(safe-area-inset-top))}
+main{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
+.sheet{padding-bottom:calc(28px + env(safe-area-inset-bottom))}
+.ver{padding-bottom:calc(28px + env(safe-area-inset-bottom))}
+body.has-tabs .ver{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+body.has-tabs main{padding-bottom:calc(110px + env(safe-area-inset-bottom))}
+#toast{bottom:calc(24px + env(safe-area-inset-bottom))}
+body.has-tabs #toast{bottom:calc(92px + env(safe-area-inset-bottom))}
 </style>
 </head>
 <body>
@@ -456,9 +467,9 @@ h3.pink{color:#ff7d8f}
 <footer class="ver"><button id="verBtn" type="button"></button></footer>
 <nav id="tabs" aria-label="Navigazione"></nav>
 <div id="toast"></div>
-<script src="js/core.js?v=1793614456"></script>
-<script src="js/game.js?v=1793614456"></script>
-<script src="js/app.js?v=1793614456"></script>
-<script src="js/local.js?v=1793614456"></script>
+<script src="js/core.js?v=1793614662"></script>
+<script src="js/game.js?v=1793614662"></script>
+<script src="js/app.js?v=1793614662"></script>
+<script src="js/local.js?v=1793614662"></script>
 </body>
 </html>
