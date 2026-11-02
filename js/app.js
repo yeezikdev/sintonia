@@ -59,24 +59,27 @@ function level(xp){return{lv:Math.floor(xp/500)+1,cur:xp%500}}
 
 const SCREENS={
   welcome:()=>`
-    <div class="topline"><span class="brand">${dial({zones:true,target:70,needle:62,cls:'mini'})}<b>Sintonia</b></span><button type="button" class="btn ghost sm" data-go="login">${ICON.user}Accedi</button></div>
+    <div class="topline slim"><span></span><button type="button" class="linkbtn plain" data-go="login">${ICON.user} Accedi</button></div>
     ${homeErr?`<div class="err">${esc(homeErr)}</div>`:''}
     ${webOk?'':`<div class="err">Stai aprendo il gioco come file o in anteprima: per giocare con gli amici caricalo online (es. GitHub Pages) e apri quel link.</div>`}
-    ${pendingRoom?`<div class="invite-banner"><span class="pi sm">${ICON.enter}</span><div><b>Ti hanno invitato nella stanza ${esc(pendingRoom)}</b><small>Scrivi il tuo nome ed entra</small></div></div>`:''}
-    <h1 class="headline">Leggi nella mente<br>dei tuoi amici</h1>
-    <p class="sub">Nessuna registrazione: scrivi un nome e giochi.</p>
-    <div><label class="lbl" for="gname">Il tuo nome</label><input id="gname" maxlength="16" placeholder="Es. pietro" value="${esc(guestSaved.raw||'')}" autocomplete="off" autocapitalize="off"><p class="preview">Giocherai come <b id="gprev">${esc(guestPreview(guestSaved.raw))}</b></p></div>
-    ${pendingRoom?`<button type="button" class="btn primary big" data-go="g-join">Entra nella stanza ${esc(pendingRoom)}</button>`:playCards("Sei l'host e inviti gli amici",'Con un codice o un QR')}
-    ${resumeBtn()}
-    <div class="loginbox"><div class="lb-head"><span class="pi sm gold">${ICON.chart}</span><div><b>Vuoi statistiche e amici?</b><small>Con un account salvi le partite e inviti gli amici</small></div></div>
-      <div class="grid2"><button type="button" class="btn google" data-go="google"><span class="g">G</span>Google</button><button type="button" class="btn" data-go="login">${ICON.mail}Email</button></div></div>
-    ${rules}`,
+    <div class="hero2">
+      ${dial({zones:true,target:70,needle:62,cls:'idle'})}
+      <h1 class="logo">Sintonia</h1>
+      <p class="sub tc">Leggi nella mente dei tuoi amici</p>
+    </div>
+    <div class="actions">
+      ${pendingRoom?`<button type="button" class="btn primary big" data-go="g-join">${ICON.enter}Entra nella stanza ${esc(pendingRoom)}</button><button type="button" class="btn big join2" data-go="create">${ICON.plus}Crea una nuova stanza</button>`
+        :`<button type="button" class="btn primary big" data-go="create">${ICON.plus}Crea una stanza</button><button type="button" class="btn big join2" data-go="entra">${ICON.enter}Entra in una stanza</button>`}
+      ${resumeBtn()}
+    </div>
+    ${me.name?`<button type="button" class="whoami" data-go="gname">${av({name:me.name,color:me.color},'sm')}Giochi come <b>${esc(me.name)}</b><span>cambia</span></button>`:''}
+    <div class="foot2"><button type="button" class="linkbtn plain" data-go="rules">Come si gioca</button><span aria-hidden="true">·</span><button type="button" class="linkbtn plain" data-go="login">Accedi per statistiche e amici</button></div>`,
 
   username:()=>{const changing=!!profile;return`
     <div class="topline">${changing?`<button type="button" class="iconbtn" data-go="stats" aria-label="Indietro">${ICON.back}</button>`:'<span></span>'}<span class="lbl" style="margin:0">${changing?'Cambia nome utente':'Ultimo passo'}</span><span></span></div>
     <div style="display:flex;justify-content:center;margin-top:10px"><span class="av xl" id="uav" style="--c:${esc(profile?profile.color:me.color)}">${esc((profile?profile.username:'?')[0].toUpperCase())}</span></div>
-    <h1 class="headline center">Scegli il tuo<br>nome utente</h1>
-    <p class="sub center">Ti serve per giocare, farti trovare dagli amici e comparire in classifica. È solo tuo: nessun altro può usarlo.</p>
+    <h1 class="headline tc">Scegli il tuo<br>nome utente</h1>
+    <p class="sub tc">Ti serve per giocare, farti trovare dagli amici e comparire in classifica. È solo tuo: nessun altro può usarlo.</p>
     <div><label class="lbl" for="user">Nome utente</label>
       <div class="uwrap" id="uwrap"><input id="user" maxlength="16" placeholder="es. yeezik" value="${esc(profile?profile.username:'')}" autocomplete="off" autocapitalize="off" spellcheck="false"><span class="ustate" id="ustate"></span></div>
       <p class="umsg" id="umsg"></p></div>
@@ -140,7 +143,7 @@ const SCREENS={
 
 // ===== Collegamenti delle schermate =====
 const BIND={
-  welcome(){const i=$('#gname');if(i){i.oninput=()=>{$('#gprev').textContent=guestPreview(i.value)};i.onkeydown=e=>{if(e.key==='Enter')go(pendingRoom?'g-join':'create')}}},
+  welcome(){},
   username(){
     const i=$('#user');let t=null,seq=0;
     const set=(ok,msg,sug)=>{$('#uwrap').className='uwrap '+(ok===true?'ok':ok===false?'bad':'');$('#ustate').innerHTML=ok===true?ICON.check:ok===false?ICON.x:'';$('#umsg').textContent=msg||'';$('#umsg').className='umsg '+(ok===true?'ok':ok===false?'bad':'');$('#usug').innerHTML=sug&&sug.length?`<p class="sub" style="margin:0 0 8px">Liberi per te:</p><div class="chips left">${sug.map(s=>`<button type="button" class="sugchip" data-go="usug" data-v="${esc(s)}">${esc(s)}</button>`).join('')}</div>`:'';$('#usave').disabled=ok!==true;const a=$('#uav');if(a)a.textContent=(i.value||'?')[0].toUpperCase()};
@@ -179,9 +182,11 @@ async function go(a,el){
   switch(a){
     case 'home':case 'amici':case 'stats':show(a);break;
     case 'back':show(profile?'home':'welcome');break;
-    case 'create':if(await ensureIdentity())createRoom();break;
-    case 'entra':if(profile||await ensureIdentity())show('entra');break;
-    case 'g-join':if(await ensureIdentity()){const r=pendingRoom;pendingRoom=null;joinRoom(r)}break;
+    case 'create':withName(createRoom);break;
+    case 'entra':withName(()=>show('entra'));break;
+    case 'g-join':withName(()=>{const r=pendingRoom;pendingRoom=null;joinRoom(r)});break;
+    case 'gname':openNameSheet(()=>refresh());break;
+    case 'rules':openRules();break;
     case 'resume':{const s=ls.get('sintonia_host');if(s&&s.state){state=s.state;enterRoom(s.code,true)}break}
     case 'join-code':{const c=($('#codein')||{}).value||'';if(c.length!==4){toast('Il codice ha 4 lettere');return}pendingRoom=null;joinRoom(c);break}
     case 'scan':scanQR();break;
@@ -217,6 +222,36 @@ async function ensureIdentity(){
     if(data!==guestPreview(raw))toast(`Quel nome era già usato: giochi come ${data}`,3500);
     return true;
   }catch(e){toast('Non riesco a registrare il nome, controlla la connessione');return false}
+}
+function withName(next){if(profile||me.name)next();else openNameSheet(next)}
+function openNameSheet(next){
+  const m=document.createElement('div');m.className='modal';
+  m.innerHTML=`<div class="sheet" role="dialog" aria-label="Il tuo nome"><div class="grab"></div>
+    <h2 style="text-align:left;margin:4px 0 4px">Come ti chiami?</h2>
+    <p class="hint" style="text-align:left;margin:0 0 16px">Così ti riconoscono gli amici nella stanza.</p>
+    <form id="nform"><input id="gname" maxlength="16" placeholder="Es. pietro" value="${esc(guestSaved.raw||'')}" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <p class="preview">Giocherai come <b id="gprev">${esc(guestPreview(guestSaved.raw))}</b></p>
+    <button type="submit" class="btn primary big" id="ngo" style="margin-top:14px">Gioca</button></form>
+    <p class="hint" style="margin:16px 0 0">Vuoi salvare statistiche e amici? <button type="button" class="linkbtn" id="nlogin">Accedi</button></p></div>`;
+  const close=()=>{m.classList.add('closing');setTimeout(()=>m.remove(),200)};
+  m.addEventListener('click',e=>{if(e.target===m)close()});
+  const i=m.querySelector('#gname');i.oninput=()=>{m.querySelector('#gprev').textContent=guestPreview(i.value)};
+  m.querySelector('#nlogin').onclick=()=>{close();openLogin()};
+  m.querySelector('#nform').onsubmit=async e=>{e.preventDefault();const b=m.querySelector('#ngo');b.disabled=true;
+    if(guestSaved.raw!==i.value.trim())me.name='';
+    const ok=await ensureIdentity();b.disabled=false;if(ok){close();buzz(15);next&&next()}};
+  document.body.appendChild(m);setTimeout(()=>i.focus(),300);
+}
+function openRules(){
+  const m=document.createElement('div');m.className='modal';
+  m.innerHTML=`<div class="sheet" role="dialog" aria-label="Come si gioca"><div class="grab"></div><h2 style="text-align:left;margin:4px 0 12px">Come si gioca</h2>
+    <div class="rulestep"><span>1</span><p>A turno uno di voi è il <b>Sensitivo</b>: vede dove si trova il bersaglio su una scala tra due estremi, per esempio <b>Freddo ↔ Caldo</b>, e scrive un indizio.</p></div>
+    <div class="rulestep"><span>2</span><p>Gli altri, ognuno dal proprio telefono, spostano la lancetta dove pensano sia il bersaglio.</p></div>
+    <div class="rulestep"><span>3</span><p>Centro pieno <b>4 punti</b>, vicino <b>3</b>, abbastanza vicino <b>2</b>. Il Sensitivo prende la media dei punti degli altri.</p></div>
+    <button class="btn primary big close" type="button" style="margin-top:16px">Ho capito</button></div>`;
+  const close=()=>{m.classList.add('closing');setTimeout(()=>m.remove(),200)};
+  m.addEventListener('click',e=>{if(e.target===m||e.target.closest('.close'))close()});
+  document.body.appendChild(m);
 }
 function createRoom(){invitedHere=new Set();state=newState();enterRoom(roomCode(),true)}
 async function joinRoom(c){
@@ -429,8 +464,9 @@ async function scanQR(){
 }
 
 // ===== Versione e patch notes =====
-const VERSION='2.0';
+const VERSION='2.1';
 const NOTES=[
+  {v:'2.1',d:'2 novembre 2026',t:'Home più pulita',l:['Il quadrante animato è il protagonista della home','Solo due tasti: Crea una stanza ed Entra in una stanza','Il nome da ospite si chiede solo quando inizi a giocare, e poi si ricorda','Accesso e regole diventano link discreti in basso','Le regole si aprono in un pannello a passi']},
   {v:'2.0',d:'2 novembre 2026',t:'Account, amici e statistiche',l:['Si gioca subito come ospite: scrivi un nome e diventi anon_nome','Accesso con email o Google e nome utente unico scelto da te','Home separata tra "Crea una stanza" ed "Entra in una stanza"','Schermata per entrare con il codice o scansionando il QR','Amici: cerca per nome utente, richieste, chi è online e in quale stanza','Invita gli amici nella tua stanza con un tocco, anche se sono offline','Profilo con livello, partite, vittorie, centri, anima gemella e indizio migliore','Le partite giocate con un account vengono salvate automaticamente']},
   {v:'1.3',d:'2 novembre 2026',t:'Lancette in diretta',l:['Il Sensitivo vede in tempo reale le lancette degli altri mentre le muovono','Le lancette restano sfumate finché il giocatore non conferma, poi diventano piene con un segno verde','Etichetta "In diretta" sul quadrante del Sensitivo']},
   {v:'1.2',d:'2 novembre 2026',t:'Grafica nuova',l:['Quadrante ridisegnato con cornice luminosa, tacche e lancetta che brilla','Sportello che si apre sul bersaglio al momento della rivelazione','Le lancette di tutti scattano una alla volta verso la risposta','Coriandoli quando qualcuno fa centro e alla fine della partita','Podio finale con colonne che salgono e corona sul vincitore','Sfondo animato, avatar colorati con l\'iniziale e barra dei round','Vibrazione leggera mentre muovi la lancetta','Versione e novità in fondo alla pagina']},
