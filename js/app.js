@@ -526,37 +526,74 @@ async function scanQR(){
 
 // ===== Versione e patch notes =====
 const VERSION='1.1';
+// tipi di voce: n = nuovo, m = migliorato, c = corretto
 const NOTES=[
-  {v:'1.1',d:'2 novembre 2026',t:'Entra al volo',sec:[
-    ['🔗','Link e QR delle stanze',['Aprendo il link di una stanza senza account, il gioco chiede subito come ti vuoi chiamare','Scelto il nome entri direttamente nella partita, senza passare dalla home','Il lettore QR ora funziona anche su iPhone']],
-    ['📱','Un solo telefono',['Si parte solo con il tuo nome: gli altri giocatori si aggiungono uno alla volta','I nomi in "Hanno già giocato" si possono togliere dalla lista']]
+  {v:'1.1',d:'2 novembre 2026',items:[
+    ['n','Apri il link di una stanza, scegli il nome ed entri subito in partita'],
+    ['m','Un solo telefono: si parte con il tuo nome e aggiungi gli altri uno alla volta'],
+    ['n','Puoi togliere i nomi dalla lista "Hanno già giocato"'],
+    ['c','Il lettore QR ora funziona anche su iPhone']
   ]},
-  {v:'1.0',d:'2 novembre 2026',t:'Benvenuto',sec:[
-    ['🎮','Modalità',['Online, ognuno dal proprio telefono, con stanze a codice di 4 lettere, QR e link d\'invito','Un solo telefono da passarsi a turno, in versione "Ognuno per sé" o "Tutti insieme"','Lancette degli altri visibili in diretta per il Sensitivo','Più di 70 carte in italiano']],
-    ['👤','Account e amici',['Si gioca subito come ospite, oppure con un account e un nome utente unico','Amici, richieste e inviti nella stanza con un tocco','Profilo con livello, statistiche, anima gemella e indizio migliore']],
-    ['✨','Effetti',['Quadrante animato, sportello che si apre sul bersaglio, coriandoli e podio finale','Suoni ed effetti, con il tasto per spegnerli','Immagine del risultato da condividere nelle storie','Rivincita con un tocco']]
-  ]}
+  {v:'1.0',d:'2 novembre 2026',first:true,items:[]}
 ];
-const RULES=[
-  ['Lo scopo','Su una scala tra due estremi, per esempio <b>Freddo ↔ Caldo</b>, c\'è un bersaglio nascosto. Dovete capire dove si trova grazie all\'indizio di un amico.'],
-  ['Il Sensitivo','A ogni round uno di voi è il <b>Sensitivo</b>: solo lui vede dove sta il bersaglio. Scrive (o dice) un indizio che faccia capire la posizione, per esempio "Il caffè" se il bersaglio è verso Caldo.'],
-  ['Indovinate','Gli altri girano la lancetta dove pensano sia il bersaglio e confermano. Finché non confermano possono cambiare idea.'],
-  ['I punti','Centro pieno <b>4 punti</b>, vicino <b>3</b>, abbastanza vicino <b>2</b>. Il Sensitivo prende la media dei punti degli altri: conviene dare indizi furbi!'],
-  ['Online','Uno crea la stanza e diventa host. Gli altri entrano con il codice di 4 lettere, il QR o un invito. Ognuno gioca dal proprio telefono.'],
-  ['Un solo telefono','Aggiungete i nomi e passatevi il telefono quando tocca a voi. Con "Ognuno per sé" c\'è una classifica, con "Tutti insieme" decidete la lancetta in gruppo.'],
-  ['Fine partita','Ognuno fa il Sensitivo lo stesso numero di volte. Vince chi ha più punti: poi podio, immagine da condividere e, se volete, rivincita.']
-];
+const NTAG={n:['Nuovo','tn'],m:['Migliorato','tm'],c:['Corretto','tc2']};
+function howtoHtml(){
+  return`<div class="howto">
+    <div class="hcard hero-h">
+      ${dial({zones:true,target:74,needle:70})}
+      <div class="hends"><span>Freddo</span><span>Caldo</span></div>
+      <p>Su una scala tra due estremi c'è un <b>bersaglio nascosto</b>.<br>Dovete trovarlo grazie a un indizio.</p>
+    </div>
+
+    <h3>Ogni round</h3>
+    <div class="hflow">
+      <div class="hstep"><span class="hic">🔮</span><b>1. Il Sensitivo</b><small>vede dove sta il bersaglio</small></div>
+      <div class="harr">→</div>
+      <div class="hstep"><span class="hic">💬</span><b>2. L'indizio</b><small>lo scrive o lo dice a voce</small></div>
+      <div class="harr">→</div>
+      <div class="hstep"><span class="hic">🎯</span><b>3. Gli altri</b><small>girano la lancetta</small></div>
+    </div>
+
+    <h3>Esempio</h3>
+    <div class="hcard hex">
+      <div class="hrow"><span class="hk">Carta</span><b>Freddo ↔ Caldo</b></div>
+      <div class="hrow"><span class="hk">Bersaglio</span><b>molto verso Caldo</b></div>
+      <div class="hrow"><span class="hk">Indizio</span><b>“Il tè appena fatto”</b></div>
+      <div class="hrow"><span class="hk">Risposta</span><b>lancetta quasi tutta a destra 🎯</b></div>
+    </div>
+
+    <h3>Punti</h3>
+    <div class="hpts">
+      <div class="hpt p4"><b>4</b><small>Centro pieno</small></div>
+      <div class="hpt p3"><b>3</b><small>Vicino</small></div>
+      <div class="hpt p2"><b>2</b><small>Abbastanza vicino</small></div>
+      <div class="hpt p0"><b>0</b><small>Lontano</small></div>
+    </div>
+    <p class="hnote">🔮 Il Sensitivo prende la <b>media</b> dei punti degli altri: più l'indizio è chiaro, più guadagna anche lui.</p>
+
+    <h3>Modalità</h3>
+    <div class="hmodes">
+      <div class="hcard"><span class="hic">🌐</span><b>Online</b><small>Ognuno dal suo telefono. Entri con codice, QR o invito.</small></div>
+      <div class="hcard"><span class="hic">📱</span><b>Un solo telefono</b><small>Ve lo passate a turno. Da soli o in squadra.</small></div>
+    </div>
+
+    <h3>Chi vince</h3>
+    <div class="hcard hwin"><span class="hic">🏆</span><p>Tutti fanno il Sensitivo lo stesso numero di volte.<br><b>Vince chi ha più punti.</b></p></div>
+  </div>`;
+}
 function renderVer(){const b=$('#verBtn');if(!b)return;const seen=ls.get('sintonia_ver')===VERSION;b.innerHTML=`Sintonia <b>v${VERSION}</b> · Novità e regole${seen?'':'<span class="dot"></span>'}`}
 function openNotes(tab){
   if(typeof tab!=='string')tab='news';
   ls.set('sintonia_ver',VERSION);renderVer();
   const m=document.createElement('div');m.className='modal';
-  const draw=()=>{const n=NOTES[0];
+  const news=()=>NOTES.map((n,k)=>`<div class="pn ${k===0?'latest':''}">
+      <div class="pnh"><span class="pnv">v${n.v}</span>${k===0?'<span class="pnnow">attuale</span>':''}<small>${esc(n.d)}</small></div>
+      ${n.first?'<p class="pnfirst">🎉 Prima versione di Sintonia. Benvenuto!</p>':`<ul class="pnl">${n.items.map(([t,x])=>`<li><span class="ptag ${NTAG[t][1]}">${NTAG[t][0]}</span><span>${esc(x)}</span></li>`).join('')}</ul>`}
+    </div>`).join('');
+  const draw=()=>{
     m.innerHTML=`<div class="sheet notes" role="dialog" aria-label="Novità e regole"><div class="grab"></div>
       <div class="seg wide" style="margin-bottom:16px"><button type="button" data-t="news" class="${tab==='news'?'on':''}">Novità</button><button type="button" data-t="rules" class="${tab==='rules'?'on':''}">Come si gioca</button></div>
-      ${tab==='news'?NOTES.map((n,k)=>`<div class="vhead ${k?'old':''}"><span class="vbig">Versione ${n.v}</span><h2>${esc(n.t)}</h2><small>${esc(n.d)}</small></div>
-        ${n.sec.map(([ic,t,l])=>`<div class="note"><h4><span class="nic">${ic}</span>${esc(t)}</h4><ul>${l.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')}`).join('')
-      :`${RULES.map(([t,d],i)=>`<div class="rulestep"><span>${i+1}</span><p><b>${esc(t)}</b><br>${d}</p></div>`).join('')}`}
+      ${tab==='news'?news():howtoHtml()}
       <button class="btn ghost big close" type="button" style="margin-top:18px">Chiudi</button></div>`;
     m.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{tab=b.dataset.t;draw();m.querySelector('.sheet').scrollTop=0});
   };
