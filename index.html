@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<title>Sintonia</title>
+<meta name="theme-color" content="#120f1f">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{--bg:#120f1f;--card:#1d1833;--card2:#262044;--line:rgba(255,255,255,.1);--text:#f5f3ff;--mut:#a59fc4;--acc:#ff5c8a;--acc2:#ffd23f;--ok:#7cff6b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{background:radial-gradient(circle at 50% -10%,#3a2470 0,transparent 60%),var(--bg);background-color:var(--bg);color:var(--text);font-family:Rubik,system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+button{font:inherit;cursor:pointer}
+input{font:inherit}
+#top{position:sticky;top:0;z-index:5;background:rgba(18,15,31,.88);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+#top:empty{display:none}
+.bar{display:flex;align-items:center;gap:8px;padding:10px 16px;max-width:520px;margin:0 auto}
+.codechip{background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:999px;padding:6px 12px;font-weight:600;letter-spacing:.08em}
+.rnd{color:var(--mut);font-size:14px;margin-left:auto}
+.exit{margin-left:auto;background:none;border:none;color:var(--mut);font-size:14px;padding:6px}
+.rnd+.exit{margin-left:0}
+.scores{display:flex;gap:6px;overflow-x:auto;padding:0 16px 10px;max-width:520px;margin:0 auto;scrollbar-width:none}
+.scores::-webkit-scrollbar{display:none}
+.sc{flex:none;display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:13px}
+.sc b{color:var(--acc2)}
+.sc.psy{border-color:var(--acc)}
+.off{opacity:.4}
+i{display:inline-block;width:10px;height:10px;border-radius:50%;flex:none}
+main{max-width:520px;margin:0 auto;padding:16px 16px 48px}
+.hero{text-align:center;margin:18px 0 22px}
+.hero h1{font-size:44px;margin:6px 0 2px;font-weight:800;letter-spacing:-.02em;background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--mut);margin:0}
+.logo svg{width:110px}
+.lbl{display:block;color:var(--mut);font-size:13px;margin:0 0 6px;text-transform:uppercase;letter-spacing:.08em}
+input{width:100%;background:var(--card);border:1px solid var(--line);color:var(--text);border-radius:14px;padding:14px 16px;font-size:17px;outline:none}
+input:focus{border-color:var(--acc)}
+.codein{text-transform:uppercase;letter-spacing:.3em;font-weight:800;text-align:center}
+.row{display:flex;gap:10px;margin-top:12px}
+.row>*{flex:1}
+.btn{border:1px solid var(--line);background:var(--card2);color:var(--text);border-radius:14px;padding:14px 16px;font-size:16px;font-weight:600;transition:transform .08s}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:linear-gradient(90deg,var(--acc),#ff7d5c);border:none;color:#fff}
+.btn.big{width:100%;padding:17px;font-size:18px}
+.btn.ghost{background:transparent}
+.btn.sm{padding:9px 14px;font-size:14px}
+.btn.sq{flex:0 0 56px;font-size:22px}
+.btn:disabled{opacity:.45}
+.or{text-align:center;color:var(--mut);margin:18px 0;font-size:14px}
+.err{background:rgba(255,92,138,.15);border:1px solid var(--acc);border-radius:12px;padding:12px;margin-bottom:16px;font-size:15px}
+.rules{margin-top:22px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 16px;color:var(--mut);line-height:1.5}
+.rules summary{color:var(--text);font-weight:600;cursor:pointer}
+.rules b{color:var(--text)}
+#resume{width:100%;margin-top:10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px}
+.share{text-align:center}
+.bigcode{font-size:52px;font-weight:800;letter-spacing:.18em;margin:2px 0 10px;padding-left:.18em}
+.qr{display:flex;justify-content:center;margin:4px 0 12px}
+.qr img,.qr canvas{background:#fff;padding:8px;border-radius:12px}
+h3{margin:22px 0 10px;font-size:15px;color:var(--mut);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+h2{text-align:center;margin:12px 0 18px}
+.plist{display:flex;flex-direction:column;gap:8px}
+.pl{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.pl em{font-style:normal;font-size:12px;color:var(--mut);background:var(--card2);border-radius:6px;padding:2px 6px}
+.pl .x{margin-left:auto;background:none;border:1px solid var(--line);color:var(--mut);border-radius:8px;padding:4px 8px;font-size:12px}
+.setting{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:18px 0 14px;color:var(--mut)}
+.seg{display:flex;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:3px}
+.seg button{background:none;border:none;color:var(--mut);padding:8px 14px;border-radius:9px;font-weight:600}
+.seg button.on{background:var(--acc);color:#fff}
+.wait,.hint{color:var(--mut);text-align:center;line-height:1.45}
+.role{text-align:center;font-weight:800;font-size:22px;margin:6px 0 6px}
+.role.psy{color:var(--acc2)}
+.dial{width:100%;display:block;margin:6px 0 0;user-select:none;-webkit-user-select:none}
+.dial.live{touch-action:none;cursor:grab}
+#ends{display:flex;justify-content:space-between;gap:12px;margin:8px 0 16px;font-weight:800;font-size:17px}
+#ends span{max-width:48%}
+#ends span:last-child{text-align:right}
+#ends span:first-child::before{content:"← ";color:var(--mut)}
+#ends span:last-child::after{content:" →";color:var(--mut)}
+.cluebox{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 16px;text-align:center;margin-bottom:6px}
+.clue{font-size:26px;font-weight:800;margin-top:2px;word-break:break-word}
+.chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:14px}
+.chip{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:14px}
+.chip.done{border-color:var(--ok)}
+#hostbar{display:flex;gap:8px;justify-content:center;margin-top:18px}
+#hostbar:empty{display:none}
+.okmsg{text-align:center;color:var(--ok);font-weight:600;margin:4px 0 10px}
+.res{display:flex;flex-direction:column;gap:8px;margin:4px 0 18px}
+.ri{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.ri span{color:var(--mut);font-size:13px}
+.ri b{margin-left:auto;font-size:18px;color:var(--acc2)}
+.ri.zero b{color:var(--mut)}
+.ri.psyrow{border-color:var(--acc)}
+.podium .ri:nth-child(1){border-color:var(--acc2);background:rgba(255,210,63,.1)}
+.podium .ri:nth-child(1) b{font-size:22px}
+.pos{width:26px;font-weight:800;color:var(--mut)}
+.center{text-align:center;padding:60px 0;color:var(--mut)}
+.spin{width:38px;height:38px;border:4px solid var(--card2);border-top-color:var(--acc);border-radius:50%;margin:0 auto 14px;animation:sp 0.8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.dots{display:flex;justify-content:center;gap:8px;margin-top:6px}
+.dots span{width:10px;height:10px;border-radius:50%;background:var(--acc);animation:bl 1.2s infinite}
+.dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}
+@keyframes bl{0%,100%{opacity:.2}50%{opacity:1}}
+#toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,30px);background:#fff;color:#120f1f;padding:10px 18px;border-radius:999px;font-weight:600;opacity:0;transition:.25s;pointer-events:none;z-index:20;max-width:90vw;text-align:center}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+<header id="top"></header>
+<main id="app"></main>
+<div id="toast"></div>
+<script>
+// ===== Config Supabase (solo Realtime, nessuna tabella) =====
+const SB_URL='https://wnzzviumwpybprcuurrq.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Induenp2aXVtd3B5YnByY3V1cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI3NTUzOTIsImV4cCI6MjEwODMzMTM5Mn0.VynzXH6B4tKDNEOHqTts7zoZ8WUwqIXzj08kPELadvc';
+let sbc=null;
+function getClient(){if(sbc)return sbc;if(!window.supabase)throw new Error('Libreria di connessione non caricata. Controlla la connessione internet e ricarica la pagina.');sbc=supabase.createClient(SB_URL,SB_KEY,{realtime:{params:{eventsPerSecond:20}}});return sbc}
+function setUrl(q){try{history.replaceState(null,'',q)}catch(e){}}
+const webOk=/^https?:$/.test(location.protocol);
+
+// ===== Carte (estremo sinistro, estremo destro) =====
+const CARDS=[["Freddo","Caldo"],["Brutto","Bello"],["Inutile","Utile"],["Noioso","Divertente"],["Economico","Costoso"],["Facile","Difficile"],["Salato","Dolce"],["Sfigato","Figo"],["Odiato","Amato"],["Comune","Raro"],["Lento","Veloce"],["Piccolo","Enorme"],["Morbido","Duro"],["Silenzioso","Rumoroso"],["Sopravvalutato","Sottovalutato"],["Cringe","Iconico"],["Tamarro","Elegante"],["Puzza","Profuma"],["Sano","Schifezza"],["Mainstream","Di nicchia"],["Da inverno","Da estate"],["Normale","Bizzarro"],["Innocuo","Pericoloso"],["Ruvido","Liscio"],["Da aperitivo","Da club alle 4"],["Canzone triste","Canzone allegra"],["Da primo appuntamento","Da matrimonio"],["Snack","Pasto completo"],["Non è uno sport","È uno sport"],["Talento","Fortuna"],["Pulito","Sporco"],["Pessimo consiglio","Ottimo consiglio"],["Pigro","Produttivo"],["Per niente romantico","Romanticissimo"],["Imbarazzante","Motivo di vanto"],["Peggior regalo","Miglior regalo"],["Dimenticabile","Indimenticabile"],["Rilassante","Stressante"],["Superpotere inutile","Superpotere utile"],["Lavoro facile","Lavoro durissimo"],["Normale in pubblico","Strano in pubblico"],["Film brutto","Capolavoro"],["Da nonno","Da ragazzino"],["Animale da appartamento","Animale selvatico"],["Fantasia","Realtà"],["Vietato sulla pizza","Perfetto sulla pizza"],["Cattivo debole","Cattivo temibile"],["Hobby noioso","Hobby figo"],["Si fa da soli","Si fa in gruppo"],["Passato di moda","Di tendenza"],["Mangiabile","Immangiabile"],["Leggero","Pesante"],["Semplice","Complicato"],["Basso rischio","Alto rischio"],["Look casual","Look elegante"],["Città","Natura"],["Tecnologia vecchia","Tecnologia futuristica"],["Bevanda schifosa","Bevanda buonissima"],["Antipatico","Simpatico"],["Fragile","Indistruttibile"],["Calmo","Caotico"],["Nome da cane","Nome da persona"],["Serio","Ridicolo"],["Colazione","Cena"],["Tutti lo sanno fare","Pochi lo sanno fare"],["Da nascondere","Da postare sui social"],["Mattina presto","Notte fonda"],["Insalata","Non è un'insalata"],["Panino","Non è un panino"],["Infanzia","Vita adulta"],["Pessimo coinquilino","Coinquilino perfetto"],["Ingiusto","Giusto"]];
+const COLORS=['#ff5c8a','#4dd6ff','#ffd23f','#7cff6b','#b18cff','#ff9f43','#2ee6c5','#ff6bd6','#9ad1ff','#e8e8e8','#ff4f4f','#c6ff4d'];
+
+// ===== Utility =====
+const ls={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function rid(n){const c='abcdefghijkmnpqrstuvwxyz23456789';let s='';for(let i=0;i<n;i++)s+=c[Math.floor(Math.random()*c.length)];return s}
+function roomCode(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ';let s='';for(let i=0;i<4;i++)s+=c[Math.floor(Math.random()*c.length)];return s}
+function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),2200)}
+const inviteLink=()=>location.origin+location.pathname+'?r='+code;
+
+// ===== Stato locale =====
+let me=ls.get('sintonia_me')||{id:rid(10),name:''};ls.set('sintonia_me',me);
+let code=null,isHost=false,state=null,channel=null,online=new Set(),lastKey='',myGuess=50,guessRound=-1,clueDraft='',joinTimer=null,lastJoin=0;
+
+// ===== Quadrante =====
+const CX=100,CY=100,R=90;
+function pt(v,r){const a=Math.PI*(1-v/100);return[+(CX+r*Math.cos(a)).toFixed(2),+(CY-r*Math.sin(a)).toFixed(2)]}
+function wedge(a,b,r){a=Math.max(0,a);b=Math.min(100,b);if(b<=a)return'';const p1=pt(a,r),p2=pt(b,r);return`M${CX} ${CY} L${p1[0]} ${p1[1]} A${r} ${r} 0 0 1 ${p2[0]} ${p2[1]} Z`}
+function dial(o={}){
+  let s=`<svg class="dial${o.interactive?' live':''}" id="dial" viewBox="0 0 200 112">`;
+  s+=`<defs><linearGradient id="dg" x1="0" x2="1"><stop offset="0" stop-color="#2f3f8f"/><stop offset="1" stop-color="#7a2d6b"/></linearGradient></defs>`;
+  s+=`<path d="M${CX-R} ${CY} A${R} ${R} 0 0 1 ${CX+R} ${CY} Z" fill="url(#dg)" stroke="rgba(255,255,255,.18)"/>`;
+  if(o.zones){
+    const t=o.target;
+    s+=`<path d="${wedge(t-17,t+17,R)}" fill="#ffd23f"/><path d="${wedge(t-10,t+10,R)}" fill="#ff9f43"/><path d="${wedge(t-4,t+4,R)}" fill="#ff5c8a"/>`;
+    [[t-13.5,2],[t-7,3],[t,4],[t+7,3],[t+13.5,2]].forEach(([v,n])=>{if(v<1||v>99)return;const p=pt(v,R-12);s+=`<text x="${p[0]}" y="${p[1]+2.5}" text-anchor="middle" font-size="7" font-weight="800" fill="#120f1f">${n}</text>`});
+  }
+  for(let v=0;v<=100;v+=10){const a=pt(v,R),b=pt(v,R-5);s+=`<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="rgba(255,255,255,.35)" stroke-width=".7"/>`}
+  if(o.guesses)o.guesses.forEach(g=>{const e=pt(g.v,R-3);s+=`<line x1="${CX}" y1="${CY}" x2="${e[0]}" y2="${e[1]}" stroke="${g.color}" stroke-width="1.6" stroke-linecap="round"/><circle cx="${e[0]}" cy="${e[1]}" r="5" fill="${g.color}" stroke="#120f1f" stroke-width="1"/><text x="${e[0]}" y="${e[1]+2.3}" text-anchor="middle" font-size="6" font-weight="800" fill="#120f1f">${esc((g.name||'?')[0].toUpperCase())}</text>`});
+  if(o.needle!=null){const e=pt(o.needle,R-6);s+=`<line id="nl" x1="${CX}" y1="${CY}" x2="${e[0]}" y2="${e[1]}" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle id="nk" cx="${e[0]}" cy="${e[1]}" r="6.5" fill="#fff" stroke="${o.color||'#ff5c8a'}" stroke-width="2"/>`}
+  s+=`<circle cx="${CX}" cy="${CY}" r="7" fill="#120f1f" stroke="rgba(255,255,255,.4)"/></svg>`;
+  return s;
+}
+function setNeedle(v){const e=pt(v,R-6),l=$('#nl'),k=$('#nk');if(l){l.setAttribute('x2',e[0]);l.setAttribute('y2',e[1])}if(k){k.setAttribute('cx',e[0]);k.setAttribute('cy',e[1])}}
+function bindDial(){
+  const svg=document.querySelector('.dial.live');if(!svg)return;let drag=false;
+  const upd=e=>{const r=svg.getBoundingClientRect();const x=(e.clientX-r.left)/r.width*200,y=(e.clientY-r.top)/r.height*112;let a=Math.atan2(CY-y,x-CX);if(a<0)a=x<CX?Math.PI:0;myGuess=Math.round((1-a/Math.PI)*100);setNeedle(myGuess)};
+  svg.addEventListener('pointerdown',e=>{drag=true;try{svg.setPointerCapture(e.pointerId)}catch(_){}upd(e)});
+  svg.addEventListener('pointermove',e=>{if(drag)upd(e)});
+  ['pointerup','pointercancel'].forEach(t=>svg.addEventListener(t,()=>drag=false));
+}
+
+// ===== Logica di gioco (eseguita dall'host) =====
+function newState(){return{phase:'lobby',hostId:me.id,players:[{id:me.id,name:me.name,score:0,color:COLORS[0]}],order:[],laps:1,round:0,total:0,psychicId:null,card:null,target:50,clue:'',guesses:{},pts:{},used:[]}}
+function ensureMe(){const p=state.players.find(x=>x.id===me.id);if(p)p.name=me.name;else state.players.push({id:me.id,name:me.name,score:0,color:COLORS[state.players.length%COLORS.length]});state.hostId=me.id}
+function pickCard(){const S=state;if(S.used.length>=CARDS.length)S.used=[];let i;do{i=Math.floor(Math.random()*CARDS.length)}while(S.used.includes(i));S.used.push(i);return CARDS[i]}
+function startRound(){const S=state;if(!S.order.length){S.phase='lobby';return}S.psychicId=S.order[S.round%S.order.length];S.card=pickCard();S.target=Math.round(3+Math.random()*94);S.clue='';S.guesses={};S.pts={};S.phase='clue'}
+function nextRound(){const S=state;S.round++;if(S.round>=S.total||!S.order.length)S.phase='end';else startRound()}
+const scoreFor=d=>d<=4?4:d<=10?3:d<=17?2:0;
+function reveal(){
+  const S=state;S.pts={};let sum=0,n=0;
+  for(const [id,v] of Object.entries(S.guesses)){const p=S.players.find(x=>x.id===id);if(!p)continue;const pt_=scoreFor(Math.abs(v-S.target));S.pts[id]=pt_;p.score+=pt_;sum+=pt_;n++}
+  const ps=n?Math.round(sum/n):0;S.pts[S.psychicId]=ps;const pp=S.players.find(x=>x.id===S.psychicId);if(pp)pp.score+=ps;
+  S.phase='reveal';
+}
+const guessers=()=>state.players.filter(p=>p.id!==state.psychicId&&online.has(p.id)).map(p=>p.id);
+function autoReveal(){const S=state;if(!S||S.phase!=='guess')return;const gs=guessers();if(gs.length&&gs.every(id=>S.guesses[id]!=null))reveal()}
+
+function handle(a){
+  const S=state;if(!S)return;const p=S.players.find(x=>x.id===a.from),isH=a.from===S.hostId;
+  switch(a.type){
+    case 'join':{const name=String(a.name||'?').trim().slice(0,14)||'?';if(p)p.name=name;else{S.players.push({id:a.from,name,score:0,color:COLORS[S.players.length%COLORS.length]});if(S.phase!=='lobby'&&S.phase!=='end')S.order.push(a.from)}break}
+    case 'laps':if(isH&&S.phase==='lobby')S.laps=Math.max(1,Math.min(3,a.v|0));break;
+    case 'start':if(isH&&S.phase==='lobby'&&S.players.length>=2){S.players.forEach(x=>x.score=0);S.order=shuffle(S.players.map(x=>x.id));S.total=S.order.length*S.laps;S.round=0;startRound()}break;
+    case 'reroll':if(S.phase==='clue'&&a.from===S.psychicId)S.card=pickCard();break;
+    case 'clue':if(S.phase==='clue'&&a.from===S.psychicId){const c=String(a.clue||'').trim().slice(0,60);if(c){S.clue=c;S.guesses={};S.phase='guess'}}break;
+    case 'guess':if(S.phase==='guess'&&a.from!==S.psychicId&&p){S.guesses[a.from]=Math.max(0,Math.min(100,Math.round(+a.v||0)));autoReveal()}break;
+    case 'unguess':if(S.phase==='guess')delete S.guesses[a.from];break;
+    case 'reveal':if(isH&&S.phase==='guess')reveal();break;
+    case 'next':if(isH&&S.phase==='reveal')nextRound();break;
+    case 'skip':if(isH&&(S.phase==='clue'||S.phase==='guess'))nextRound();break;
+    case 'kick':if(isH&&a.id!==S.hostId){S.players=S.players.filter(x=>x.id!==a.id);S.order=S.order.filter(x=>x!==a.id);delete S.guesses[a.id];if(S.psychicId===a.id&&(S.phase==='clue'||S.phase==='guess')){S.round--;nextRound()}else autoReveal()}break;
+    case 'again':if(isH&&S.phase==='end'){S.phase='lobby';S.players.forEach(x=>x.score=0)}break;
+    default:return;
+  }
+  push();
+}
+
+// ===== Rete =====
+function push(){if(!isHost||!state)return;ls.set('sintonia_host',{code,state});if(channel)channel.send({type:'broadcast',event:'state',payload:state});render()}
+function send(a){a.from=me.id;if(isHost)handle(a);else if(channel)channel.send({type:'broadcast',event:'action',payload:a})}
+async function enterRoom(c,host){
+  try{await enterRoomInner(c,host)}catch(e){console.error(e);const wasHost=host;leave();if(wasHost)state=null;showHome('Impossibile collegarsi: '+(e&&e.message||e))}
+}
+async function enterRoomInner(c,host){
+  const client=getClient();
+  code=c;isHost=host;online=new Set();lastKey='';
+  setUrl('?r='+c);
+  if(channel){try{await client.removeChannel(channel)}catch(e){}}
+  $('#top').innerHTML='';
+  $('#app').innerHTML=`<div class="center"><div class="spin"></div>Connessione alla stanza ${esc(c)}…</div>`;lastKey='connecting';
+  if(!host)state=null;
+  channel=client.channel('sintonia-'+c,{config:{broadcast:{self:false},presence:{key:me.id}}});
+  channel
+    .on('broadcast',{event:'state'},({payload})=>{
+      if(isHost)return;clearTimeout(joinTimer);state=payload;
+      if(!state.players.find(p=>p.id===me.id)&&Date.now()-lastJoin>2000){lastJoin=Date.now();send({type:'join',name:me.name})}
+      render();
+    })
+    .on('broadcast',{event:'action'},({payload})=>{if(isHost)handle(payload)})
+    .on('broadcast',{event:'hello'},()=>{if(isHost)push()})
+    .on('presence',{event:'sync'},()=>{online=new Set(Object.keys(channel.presenceState()));if(isHost&&state){autoReveal();push()}else render()})
+    .subscribe(async st=>{
+      if(st==='SUBSCRIBED'){
+        await channel.track({name:me.name});
+        if(isHost){ensureMe();push()}
+        else{
+          lastJoin=Date.now();send({type:'join',name:me.name});
+          channel.send({type:'broadcast',event:'hello',payload:{}});
+          clearTimeout(joinTimer);
+          joinTimer=setTimeout(()=>{if(!state){leave();showHome(`Stanza ${c} non trovata. Controlla il codice: chi l'ha creata deve avere la pagina aperta.`)}},6000);
+        }
+      }else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT'){toast('Connessione instabile, riprovo…')}
+    });
+  if(host){clearTimeout(joinTimer);joinTimer=setTimeout(()=>{if(!lastKey||lastKey==='connecting'){leave();state=null;showHome('Il server di gioco non risponde. Apri il gioco dal suo link online (GitHub Pages) e non dall\'anteprima o dal file sul computer, poi riprova.')}},9000)}
+}
+function leave(){clearTimeout(joinTimer);if(channel&&sbc){try{sbc.removeChannel(channel)}catch(e){}}channel=null;state=null;code=null;isHost=false;online=new Set();setUrl(location.pathname)}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&channel){try{channel.track({name:me.name})}catch(e){}if(!isHost)channel.send({type:'broadcast',event:'hello',payload:{}})}});
+
+// ===== Schermate =====
+const nameOf=id=>{const p=state.players.find(x=>x.id===id);return p?p.name:'?'};
+function showHome(err){
+  lastKey='home';
+  const pre=(new URLSearchParams(location.search).get('r')||'').toUpperCase().replace(/[^A-Z]/g,'').slice(0,4);
+  const saved=ls.get('sintonia_host');
+  $('#top').innerHTML='';
+  $('#app').innerHTML=`
+    <div class="hero"><div class="logo">${dial({zones:true,target:68,needle:62})}</div><h1>Sintonia</h1><p class="sub">Leggi nella mente dei tuoi amici</p></div>
+    ${err?`<div class="err">${esc(err)}</div>`:''}
+    ${webOk?'':`<div class="err">Stai aprendo il gioco come file o in anteprima: per giocare con gli amici caricalo online (es. GitHub Pages) e apri quel link.</div>`}
+    <label class="lbl" for="name">Il tuo nome</label>
+    <input id="name" maxlength="14" placeholder="Es. Pietro" value="${esc(me.name)}" autocomplete="off">
+    <div class="row"><input id="code" maxlength="4" placeholder="CODICE" value="${esc(pre)}" class="codein" autocomplete="off"><button id="join" class="btn">Entra</button></div>
+    <div class="or">oppure</div>
+    <button id="create" class="btn primary big">Crea una stanza</button>
+    ${saved&&saved.state&&saved.state.hostId===me.id?`<button id="resume" class="btn ghost">Riprendi la stanza ${esc(saved.code)}</button>`:''}
+    <details class="rules"><summary>Come si gioca</summary>
+      <p>A turno uno di voi è il <b>Sensitivo</b>: vede dove si trova il bersaglio su una scala tra due estremi (es. <b>Freddo ↔ Caldo</b>) e scrive un indizio.</p>
+      <p>Gli altri, ognuno sul proprio telefono, spostano la lancetta dove pensano sia il bersaglio.</p>
+      <p>Centro pieno <b>4 punti</b>, vicino <b>3</b>, abbastanza vicino <b>2</b>. Il Sensitivo prende la media dei punti degli altri, quindi conviene dare indizi furbi!</p>
+    </details>`;
+  const getName=()=>{const n=$('#name').value.trim();if(!n){toast('Scrivi il tuo nome');$('#name').focus();return false}me.name=n.slice(0,14);ls.set('sintonia_me',me);return true};
+  $('#code').oninput=e=>e.target.value=e.target.value.toUpperCase().replace(/[^A-Z]/g,'');
+  $('#code').onkeydown=e=>{if(e.key==='Enter')$('#join').click()};
+  $('#join').onclick=()=>{if(!getName())return;const c=$('#code').value.trim();if(c.length!==4){toast('Il codice ha 4 lettere');return}enterRoom(c,false)};
+  $('#create').onclick=()=>{if(!getName())return;const c=roomCode();state=newState();enterRoom(c,true)};
+  const r=$('#resume');if(r)r.onclick=()=>{if(!getName())return;state=saved.state;enterRoom(saved.code,true)};
+}
+
+const VIEWS={
+  lobby:()=>`
+    <div class="card share"><div class="lbl">Codice stanza</div><div class="bigcode">${esc(code)}</div><div id="qr" class="qr"></div><button class="btn ghost sm" data-a="copy">Condividi link d'invito</button></div>
+    <h3>Giocatori</h3><div id="plist" class="plist"></div>
+    ${isHost?`<div class="setting"><span>Volte che ognuno fa il Sensitivo</span><div class="seg" id="laps"></div></div><button class="btn primary big" data-a="start" id="startBtn">Inizia la partita</button>`:`<p class="wait">In attesa che l'host avvii la partita…</p>`}`,
+  clue:()=>{
+    const S=state;
+    if(S.psychicId===me.id)return`
+      <div class="role psy">Sei il Sensitivo 🔮</div>
+      <p class="hint">Il bersaglio è nella zona colorata. Scrivi un indizio per far capire agli altri dove si trova tra i due estremi.</p>
+      ${dial({zones:true,target:S.target})}<div id="ends"></div>
+      <input id="clue" maxlength="60" placeholder="Il tuo indizio…" value="${esc(clueDraft)}" autocomplete="off">
+      <div class="row"><button class="btn ghost" data-a="reroll">Cambia carta</button><button class="btn primary" data-a="clue">Invia indizio</button></div>
+      <div id="hostbar"></div>`;
+    return`
+      <div class="role">${esc(nameOf(S.psychicId))} è il Sensitivo</div>
+      <p class="hint">Sta guardando il bersaglio e pensando all'indizio…</p>
+      ${dial({})}<div id="ends"></div><div class="dots"><span></span><span></span><span></span></div>
+      <div id="hostbar"></div>`;
+  },
+  guess:()=>{
+    const S=state,psy=S.psychicId===me.id,mine=S.guesses[me.id];
+    const cb=`<div class="cluebox"><div class="lbl">${psy?'Il tuo indizio':'Indizio di '+esc(nameOf(S.psychicId))}</div><div class="clue">“${esc(S.clue)}”</div></div>`;
+    if(psy)return`${cb}${dial({zones:true,target:S.target})}<div id="ends"></div><p class="hint">Gli altri stanno scegliendo… niente suggerimenti! 🤐</p><div id="status"></div><div id="hostbar"></div>`;
+    const col=(state.players.find(p=>p.id===me.id)||{}).color;
+    if(mine!=null)return`${cb}${dial({needle:mine,color:col})}<div id="ends"></div><p class="okmsg">Risposta inviata ✓</p><button class="btn ghost big" data-a="unguess">Cambia risposta</button><div id="status"></div><div id="hostbar"></div>`;
+    return`${cb}${dial({interactive:true,needle:myGuess,color:col})}<div id="ends"></div>
+      <div class="row"><button class="btn ghost sq" data-a="m">−</button><button class="btn primary" data-a="guess">Conferma</button><button class="btn ghost sq" data-a="p">+</button></div>
+      <div id="status"></div><div id="hostbar"></div>`;
+  },
+  reveal:()=>{
+    const S=state;
+    const gs=Object.entries(S.guesses).map(([id,v])=>{const p=S.players.find(x=>x.id===id)||{};return{id,v,name:p.name,color:p.color||'#fff'}});
+    const rows=gs.sort((a,b)=>(S.pts[b.id]||0)-(S.pts[a.id]||0)).map(g=>`<div class="ri ${S.pts[g.id]?'':'zero'}"><i style="background:${g.color}"></i>${esc(g.name)}<span>${Math.abs(g.v-S.target)} di distanza</span><b>+${S.pts[g.id]||0}</b></div>`).join('');
+    const pp=S.players.find(x=>x.id===S.psychicId)||{};
+    const last=S.round+1>=S.total;
+    return`<div class="cluebox"><div class="lbl">Indizio di ${esc(pp.name)}</div><div class="clue">“${esc(S.clue)}”</div></div>
+      ${dial({zones:true,target:S.target,guesses:gs})}<div id="ends"></div>
+      <div class="res">${rows||'<p class="hint">Nessuno ha risposto.</p>'}<div class="ri psyrow"><i style="background:${pp.color||'#fff'}"></i>${esc(pp.name)}<span>Sensitivo</span><b>+${S.pts[S.psychicId]||0}</b></div></div>
+      ${isHost?`<button class="btn primary big" data-a="next">${last?'Vedi la classifica 🏆':'Prossimo round'}</button>`:`<p class="wait">In attesa dell'host…</p>`}`;
+  },
+  end:()=>{
+    const S=state,sorted=[...S.players].sort((a,b)=>b.score-a.score);
+    const medal=['🥇','🥈','🥉'];
+    return`<h2>Classifica finale 🏆</h2><div class="res podium">${sorted.map((p,i)=>`<div class="ri"><span class="pos">${medal[i]||i+1}</span><i style="background:${p.color}"></i>${esc(p.name)}<b>${p.score}</b></div>`).join('')}</div>
+      ${isHost?`<button class="btn primary big" data-a="again">Nuova partita</button>`:`<p class="wait">L'host può avviare una nuova partita.</p>`}`;
+  }
+};
+
+function renderTop(){
+  const S=state,sorted=[...S.players].sort((a,b)=>b.score-a.score),inGame=S.phase!=='lobby';
+  $('#top').innerHTML=`<div class="bar"><button class="codechip" data-a="copy">🔗 ${esc(code)}</button>${inGame&&S.phase!=='end'?`<span class="rnd">Round ${Math.min(S.round+1,S.total)}/${S.total}</span>`:''}<button class="exit" data-a="exit">Esci</button></div>
+  ${inGame?`<div class="scores">${sorted.map(p=>`<span class="sc ${online.has(p.id)?'':'off'} ${p.id===S.psychicId&&S.phase!=='end'?'psy':''}"><i style="background:${p.color}"></i>${esc(p.name)} <b>${p.score}</b></span>`).join('')}</div>`:''}`;
+}
+function render(){
+  if(!state||!code)return;
+  const S=state;
+  if(guessRound!==S.round||S.phase==='lobby'){if(guessRound!==S.round){myGuess=50;clueDraft=''}guessRound=S.round}
+  renderTop();
+  const psy=S.psychicId===me.id,confirmed=S.guesses&&S.guesses[me.id]!=null;
+  const key=[S.phase,S.round,psy?'P':'G',isHost?'H':'',S.phase==='clue'&&psy?S.card.join('|'):'',S.phase==='guess'&&!psy?confirmed:''].join('#');
+  if(key!==lastKey){
+    lastKey=key;
+    $('#app').innerHTML=(VIEWS[S.phase]||VIEWS.lobby)();
+    bindDial();
+    const ci=$('#clue');if(ci){ci.oninput=e=>clueDraft=e.target.value;ci.onkeydown=e=>{if(e.key==='Enter')act('clue')}}
+    const qr=$('#qr');if(qr&&window.QRCode){try{new QRCode(qr,{text:inviteLink(),width:150,height:150,colorDark:'#120f1f',colorLight:'#ffffff'})}catch(e){}}
+  }
+  updateDyn();
+}
+function updateDyn(){
+  const S=state;
+  const ends=$('#ends');if(ends&&S.card)ends.innerHTML=`<span>${esc(S.card[0])}</span><span>${esc(S.card[1])}</span>`;
+  const pl=$('#plist');if(pl)pl.innerHTML=S.players.map(p=>`<div class="pl ${online.has(p.id)?'':'off'}"><i style="background:${p.color}"></i><b>${esc(p.name)}</b>${p.id===S.hostId?'<em>host</em>':''}${p.id===me.id?'<em>tu</em>':''}${isHost&&!online.has(p.id)&&p.id!==S.hostId?`<button class="x" data-a="kick" data-id="${p.id}">rimuovi</button>`:''}</div>`).join('');
+  const lp=$('#laps');if(lp)lp.innerHTML=[1,2,3].map(v=>`<button data-a="laps" data-v="${v}" class="${S.laps===v?'on':''}">${v}×</button>`).join('');
+  const startB=$('#startBtn');if(startB){const few=S.players.length<2;startB.disabled=few;startB.textContent=few?'Servono almeno 2 giocatori':`Inizia la partita (${S.players.length} giocatori)`}
+  const st=$('#status');if(st){const gs=S.players.filter(p=>p.id!==S.psychicId);st.innerHTML=`<div class="chips">${gs.map(p=>{const d=S.guesses[p.id]!=null;return`<span class="chip ${d?'done':''} ${online.has(p.id)?'':'off'}"><i style="background:${p.color}"></i>${esc(p.name)} ${d?'✓':'…'}</span>`}).join('')}</div>`}
+  const hb=$('#hostbar');if(hb)hb.innerHTML=isHost?`${S.phase==='guess'&&Object.keys(S.guesses).length?'<button class="btn ghost sm" data-a="reveal">Rivela ora</button>':''}<button class="btn ghost sm" data-a="skip">Salta round</button>`:'';
+}
+
+// ===== Azioni UI =====
+async function copyLink(){const link=inviteLink();if(navigator.share){try{await navigator.share({title:'Sintonia',text:'Entra nella mia stanza di Sintonia: '+code,url:link});return}catch(e){if(e&&e.name==='AbortError')return}}try{await navigator.clipboard.writeText(link);toast('Link copiato!')}catch(e){prompt('Copia il link:',link)}}
+function act(a,el){
+  switch(a){
+    case 'copy':copyLink();break;
+    case 'exit':if(confirm(isHost?"Sei l'host: se esci la partita si ferma per tutti (potrai riprenderla dalla home). Uscire?":'Uscire dalla stanza?')){leave();showHome()}break;
+    case 'start':send({type:'start'});break;
+    case 'laps':send({type:'laps',v:+el.dataset.v});break;
+    case 'kick':send({type:'kick',id:el.dataset.id});break;
+    case 'reroll':send({type:'reroll'});break;
+    case 'clue':{const ci=$('#clue');const c=ci?ci.value.trim():'';if(!c){toast('Scrivi un indizio');return}send({type:'clue',clue:c});break}
+    case 'm':myGuess=Math.max(0,myGuess-1);setNeedle(myGuess);break;
+    case 'p':myGuess=Math.min(100,myGuess+1);setNeedle(myGuess);break;
+    case 'guess':send({type:'guess',v:myGuess});break;
+    case 'unguess':send({type:'unguess'});break;
+    case 'reveal':send({type:'reveal'});break;
+    case 'skip':if(confirm('Saltare questo round? Nessuno prende punti.'))send({type:'skip'});break;
+    case 'next':send({type:'next'});break;
+    case 'again':send({type:'again'});break;
+  }
+}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b&&!b.disabled)act(b.dataset.a,b)});
+
+// ===== Avvio =====
+(function init(){
+  const r=(new URLSearchParams(location.search).get('r')||'').toUpperCase().replace(/[^A-Z]/g,'');
+  const saved=ls.get('sintonia_host');
+  if(r.length===4&&me.name){
+    if(saved&&saved.code===r&&saved.state&&saved.state.hostId===me.id){state=saved.state;enterRoom(r,true);return}
+    enterRoom(r,false);return;
+  }
+  showHome();
+})();
+</script>
+</body>
+</html>
