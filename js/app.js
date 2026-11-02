@@ -92,17 +92,26 @@ const SCREENS={
     const invs=invites.slice(0,2).map(i=>{const p=profCache[i.from_id]||{username:'un amico',color:'#4dd6ff'};return`<div class="invite-banner">${av(p)}<div><b>${nm(p)} ti ha invitato</b><small>Stanza ${esc(i.room_code)} · ${ago(i.created_at)}</small></div><button type="button" class="btn sm primary" data-go="accept-invite" data-id="${i.id}">Entra</button></div>`}).join('');
     const on=friends.accepted.filter(f=>isFriendOnline(f.id));
     return`
-    <div class="hello">${av({name:profile.username,color:profile.color},'lg')}<div><b>Ciao, ${nm(profile)}</b><small>${L?`Livello ${L.lv} · ${L.cur}/500 XP`:'Benvenuto su Sintonia'}</small></div>
-      <button type="button" class="iconbtn" data-go="amici" aria-label="Richieste di amicizia">${ICON.bell}${friends.incoming.length?'<span class="dotb"></span>':''}</button></div>
+    <div class="acct-top">
+      <button type="button" class="mechip" data-go="stats">${av({name:profile.username,color:profile.color},'sm')}<b>${nm(profile)}</b>${L?`<span class="lv">LV ${L.lv}</span>`:''}</button>
+      <button type="button" class="iconbtn" data-go="amici" aria-label="Amici e richieste">${ICON.bell}${friends.incoming.length?'<span class="dotb"></span>':''}</button>
+    </div>
     ${homeErr?`<div class="err">${esc(homeErr)}</div>`:''}
+    <div class="hero2 compact">
+      ${dial({zones:true,target:70,needle:62,cls:'idle'})}
+      <h1 class="logo">Sintonia</h1>
+      <p class="sub tc">Leggi nella mente dei tuoi amici</p>
+    </div>
     ${invs}
-    <h3>Gioca</h3>
-    ${playCards("Sei l'host: scegli le regole e invita gli amici",'Con un codice, un QR o un invito')}
-    ${resumeBtn()}
-    <div class="sechead"><h3>Amici online · ${on.length}</h3><button type="button" class="linkbtn" data-go="amici">Vedi tutti</button></div>
-    <div class="fstrip">${on.map(f=>{const o=onlineMap[f.id]||{};return`<button type="button" class="fbub" data-go="${o.room?'join-friend':'challenge'}" data-id="${f.id}">${av({name:f.username,color:f.color},'lg')}<i class="${o.room?'busy':''}"></i><span>${nm(f)}</span></button>`}).join('')}
-      <button type="button" class="fbub add" data-go="amici"><span class="av lg dashed">${ICON.plus}</span><span>Aggiungi</span></button></div>
-    ${rules}`},
+    <div class="actions">
+      <button type="button" class="btn primary big tile" data-go="create">${ICON.plus}<span>Crea una stanza</span><small>Sei l'host</small></button>
+      <button type="button" class="btn big join2 tile" data-go="entra">${ICON.enter}<span>Entra in una stanza</span><small>Codice, QR o invito</small></button>
+      ${resumeBtn()}
+    </div>
+    ${friends.accepted.length?`<div class="sechead"><h3>Amici online · ${on.length}</h3><button type="button" class="linkbtn" data-go="amici">Vedi tutti</button></div>
+    <div class="fstrip">${on.map(f=>{const o=onlineMap[f.id]||{};return`<button type="button" class="fbub" data-go="${o.room?'join-friend':'challenge'}" data-id="${f.id}">${av({name:f.username,color:f.color},'lg')}<i class="${o.room?'busy':''}"></i><span>${nm(f)}</span></button>`}).join('')||'<p class="empty" style="text-align:left;padding:6px 2px">Nessun amico online adesso</p>'}</div>`
+    :`<button type="button" class="addfr" data-go="amici"><span class="pi sm">${ICON.people}</span><span><b>Aggiungi i tuoi amici</b><small>Poi li inviti nella tua stanza con un tocco</small></span></button>`}
+    <div class="foot2"><button type="button" class="linkbtn plain" data-go="rules">Come si gioca</button></div>`},
 
   entra:()=>{const invs=profile?invites:[];return`
     <div class="topline"><button type="button" class="iconbtn" data-go="back" aria-label="Indietro">${ICON.back}</button><b class="ttl">Entra in una stanza</b><span></span></div>
@@ -466,7 +475,7 @@ async function scanQR(){
 // ===== Versione e patch notes =====
 const VERSION='2.1';
 const NOTES=[
-  {v:'2.1',d:'2 novembre 2026',t:'Home più pulita',l:['Il quadrante animato è il protagonista della home','Solo due riquadri affiancati: Crea una stanza a sinistra, Entra in una stanza a destra','Il nome da ospite si chiede solo quando inizi a giocare, e poi si ricorda','Accesso e regole diventano link discreti in basso','Le regole si aprono in un pannello a passi']},
+  {v:'2.1',d:'2 novembre 2026',t:'Home più pulita',l:['Anche la home con account ha il quadrante, i due riquadri affiancati e solo inviti e amici online','Il quadrante animato è il protagonista della home','Solo due riquadri affiancati: Crea una stanza a sinistra, Entra in una stanza a destra','Il nome da ospite si chiede solo quando inizi a giocare, e poi si ricorda','Accesso e regole diventano link discreti in basso','Le regole si aprono in un pannello a passi']},
   {v:'2.0',d:'2 novembre 2026',t:'Account, amici e statistiche',l:['Si gioca subito come ospite: scrivi un nome e diventi anon_nome','Accesso con email o Google e nome utente unico scelto da te','Home separata tra "Crea una stanza" ed "Entra in una stanza"','Schermata per entrare con il codice o scansionando il QR','Amici: cerca per nome utente, richieste, chi è online e in quale stanza','Invita gli amici nella tua stanza con un tocco, anche se sono offline','Profilo con livello, partite, vittorie, centri, anima gemella e indizio migliore','Le partite giocate con un account vengono salvate automaticamente']},
   {v:'1.3',d:'2 novembre 2026',t:'Lancette in diretta',l:['Il Sensitivo vede in tempo reale le lancette degli altri mentre le muovono','Le lancette restano sfumate finché il giocatore non conferma, poi diventano piene con un segno verde','Etichetta "In diretta" sul quadrante del Sensitivo']},
   {v:'1.2',d:'2 novembre 2026',t:'Grafica nuova',l:['Quadrante ridisegnato con cornice luminosa, tacche e lancetta che brilla','Sportello che si apre sul bersaglio al momento della rivelazione','Le lancette di tutti scattano una alla volta verso la risposta','Coriandoli quando qualcuno fa centro e alla fine della partita','Podio finale con colonne che salgono e corona sul vincitore','Sfondo animato, avatar colorati con l\'iniziale e barra dei round','Vibrazione leggera mentre muovi la lancetta','Versione e novità in fondo alla pagina']},
