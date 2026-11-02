@@ -25,8 +25,11 @@ const isFriendOnline=id=>!!onlineMap[id];
 const ago=t=>{const s=(Date.now()-new Date(t).getTime())/1000;if(s<60)return'adesso';if(s<3600)return Math.floor(s/60)+' min fa';if(s<86400)return Math.floor(s/3600)+' h fa';const d=Math.floor(s/86400);return d===1?'ieri':d+' giorni fa'};
 
 // ===== Router =====
-function show(v,err){
+let navStack=[];
+function show(v,err,o={}){
   if(code)return;
+  if(o.root)navStack=[];
+  else if(!o.back&&view&&view!==v&&SCREENS[view]&&view!=='username'){navStack.push(view);if(navStack.length>20)navStack.shift();try{history.pushState({sint:'v'},'')}catch(e){}}
   view=v;homeErr=err||'';
   const html=(SCREENS[v]||SCREENS.welcome)();
   $('#top').innerHTML='';
@@ -44,7 +47,18 @@ function renderTabs(){
   const badge=friends.incoming.length?`<span class="tb-badge">${friends.incoming.length}</span>`:'';
   t.innerHTML=`<button type="button" data-go="home" class="${view==='home'?'on':''}">${ICON.play}Gioca</button><button type="button" data-go="amici" class="${view==='amici'?'on':''}">${ICON.people}Amici${badge}</button><button type="button" data-go="stats" class="${view==='stats'?'on':''}">${ICON.chart}Profilo</button>`;
 }
-function goHome(err){if(err)toast(err,4000);if(profile)show('home');else show('welcome',err)}
+function goHome(err){if(err)toast(err,4000);if(profile)show('home','',{root:true});else show('welcome',err,{root:true})}
+function backNow(){const prev=navStack.pop()||(profile?'home':'welcome');show(prev,'',{back:true})}
+function goBack(){if(navStack.length){try{history.back()}catch(e){backNow()}}else show(profile?'home':'welcome','',{root:true})}
+window.addEventListener('popstate',()=>{
+  document.querySelectorAll('.modal').forEach(m=>m.remove());
+  if(code){
+    if(confirm(isHost?"Sei l'host: se esci la partita si ferma per tutti (potrai riprenderla dalla home). Uscire?":'Uscire dalla partita?')){leave();goHome()}
+    else{try{history.pushState({sint:'room'},'')}catch(e){}}
+    return;
+  }
+  backNow();
+});
 
 // ===== Schermate =====
 const playCards=(sub1,sub2)=>`
@@ -76,7 +90,7 @@ const SCREENS={
     <div class="foot2"><button type="button" class="linkbtn plain" data-go="rules">Come si gioca</button><span aria-hidden="true">·</span><button type="button" class="linkbtn plain" data-go="login">Accedi per statistiche e amici</button></div>`,
 
   username:()=>{const changing=!!profile;return`
-    <div class="topline">${changing?`<button type="button" class="iconbtn" data-go="stats" aria-label="Indietro">${ICON.back}</button>`:'<span></span>'}<span class="lbl" style="margin:0">${changing?'Cambia nome utente':'Ultimo passo'}</span><span></span></div>
+    <div class="topline">${changing?`<button type="button" class="iconbtn" data-go="back" aria-label="Indietro">${ICON.back}</button>`:'<span></span>'}<span class="lbl" style="margin:0">${changing?'Cambia nome utente':'Ultimo passo'}</span><span></span></div>
     <div style="display:flex;justify-content:center;margin-top:10px"><span class="av xl" id="uav" style="--c:${esc(profile?profile.color:me.color)}">${esc((profile?profile.username:'?')[0].toUpperCase())}</span></div>
     <h1 class="headline tc">Scegli il tuo<br>nome utente</h1>
     <p class="sub tc">Ti serve per giocare, farti trovare dagli amici e comparire in classifica. È solo tuo: nessun altro può usarlo.</p>
@@ -127,7 +141,7 @@ const SCREENS={
     const row=(f,right,sub,cls='')=>`<div class="frow ${cls}">${av({name:f.username,color:f.color})}${isFriendOnline(f.id)?`<i class="ondot ${onlineMap[f.id].room?'busy':''}"></i>`:''}<div class="fi"><b>${nm(f)}</b><small>${sub}</small></div>${right}</div>`;
     const on=friends.accepted.filter(f=>isFriendOnline(f.id)),off=friends.accepted.filter(f=>!isFriendOnline(f.id));
     return`
-    <div class="topline"><h2 class="ttl big">Amici</h2><span></span></div>
+    <div class="topline"><button type="button" class="iconbtn" data-go="back" aria-label="Indietro">${ICON.back}</button><b class="ttl">Amici</b><span style="width:44px"></span></div>
     <label class="search">${ICON.search}<input id="fsearch" placeholder="Cerca per nome utente" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
     <div id="fresults"></div>
     ${friends.incoming.length?`<h3 class="pink">Richieste · ${friends.incoming.length}</h3><div class="flist">${friends.incoming.map(f=>row(f,`<button type="button" class="iconbtn sm" data-go="decline" data-id="${f.id}" aria-label="Rifiuta">${ICON.x}</button><button type="button" class="btn sm primary" data-go="accept" data-id="${f.id}">Accetta</button>`,'Vuole essere tuo amico','req')).join('')}</div>`:''}
@@ -141,6 +155,7 @@ const SCREENS={
     if(!st)return`<div class="center"><div class="spin"></div>Carico le statistiche…</div>`;
     const L=level(st.xp);
     return`
+    <div class="topline"><button type="button" class="iconbtn" data-go="back" aria-label="Indietro">${ICON.back}</button><b class="ttl">Profilo</b><span style="width:44px"></span></div>
     <div class="phead">${av({name:profile.username,color:profile.color},'xl')}<div class="pinfo"><b>${nm(profile)}</b><div class="lvrow"><span class="lv">LV ${L.lv}</span><span class="lvbar"><span style="width:${L.cur/5}%"></span></span></div><small>${L.cur} / 500 XP al livello ${L.lv+1}</small></div></div>
     <div class="sgrid"><div class="scard"><small>Partite</small><b>${st.matches}</b></div><div class="scard"><small>Vittorie</small><b class="y">${st.wins}</b></div><div class="scard"><small>Centri pieni</small><b class="p">${st.bulls}</b></div><div class="scard"><small>Distanza media</small><b class="c">${st.avgDist==null?'–':st.avgDist}</b></div></div>
     ${st.soul?`<div class="soul"><div class="ring"><svg width="66" height="66" viewBox="0 0 66 66" aria-hidden="true"><circle cx="33" cy="33" r="28" fill="none" stroke="#262044" stroke-width="7"/><circle cx="33" cy="33" r="28" fill="none" stroke="#4dd6ff" stroke-width="7" stroke-linecap="round" stroke-dasharray="${(st.soul.pct*1.76).toFixed(0)} 176" transform="rotate(-90 33 33)"/></svg><b>${st.soul.pct}%</b></div><div><small class="cy">Anima gemella</small><b>${esc(st.soul.name)}</b><span>Capisci i suoi indizi meglio di tutti</span></div></div>`:''}
@@ -189,8 +204,9 @@ const BIND={
 async function go(a,el){
   const id=el&&el.dataset.id;
   switch(a){
-    case 'home':case 'amici':case 'stats':show(a);break;
-    case 'back':show(profile?'home':'welcome');break;
+    case 'home':show('home','',{root:true});break;
+    case 'amici':case 'stats':if(view===a)return;if(TABS.includes(view)){navStack=[];view='home'}show(a);break;
+    case 'back':goBack();break;
     case 'create':withName(createRoom);break;
     case 'entra':withName(()=>show('entra'));break;
     case 'g-join':withName(()=>{const r=pendingRoom;pendingRoom=null;joinRoom(r)});break;
@@ -329,7 +345,7 @@ async function saveUsername(){
   if(res.error){const m=res.error.message||'';$('#umsg').className='umsg bad';$('#umsg').textContent=res.error.code==='23505'?`${v} è appena stato preso, scegline un altro`:/verificati/.test(m)?'Gli account verificati non possono cambiare nome utente':/30 giorni/.test(m)?'Puoi cambiare il nome utente una volta ogni 30 giorni':'Non riuscito, riprova';btn.disabled=false;return}
   const first=!profile;profile=res.data;setAccountMe();
   if(first){startUserRealtime();confetti(80);toast(`Benvenuto, ${profile.username}!`)}else toast('Nome utente aggiornato');
-  if(pendingRoom){const r=pendingRoom;pendingRoom=null;joinRoom(r)}else show('home');
+  if(pendingRoom){const r=pendingRoom;pendingRoom=null;joinRoom(r)}else show('home','',{root:true});
 }
 function setAccountMe(){me={id:profile.id,name:profile.username,uid:profile.id,color:profile.color}}
 
@@ -339,16 +355,16 @@ async function onSession(s){
   if(!s){
     profile=null;stopUserRealtime();statsCache=null;friends={accepted:[],incoming:[],outgoing:[]};invites=[];
     me={id:deviceId,name:guestSaved.name||'',uid:null,color:guestSaved.color||COLORS[0]};
-    if(!code)show('welcome');return;
+    if(!code)show('welcome','',{root:true});return;
   }
   if(profile&&prevUid===s.user.id)return;
   const {data,error}=await sbc.from('profiles').select('*').eq('id',s.user.id).maybeSingle();
-  if(error){toast('Non riesco a caricare il profilo');if(!code)show('welcome');return}
+  if(error){toast('Non riesco a caricare il profilo');if(!code)show('welcome','',{root:true});return}
   profile=data;
-  if(!profile){if(!code)show('username');return}
+  if(!profile){if(!code)show('username','',{root:true});return}
   setAccountMe();startUserRealtime();
   if(code)return;
-  if(pendingRoom){const r=pendingRoom;pendingRoom=null;joinRoom(r)}else show('home');
+  if(pendingRoom){const r=pendingRoom;pendingRoom=null;joinRoom(r)}else show('home','',{root:true});
 }
 
 // ===== Amici =====
@@ -433,7 +449,7 @@ function startUserRealtime(){
 }
 function stopUserRealtime(){try{presenceCh&&sbc.removeChannel(presenceCh)}catch(e){}try{userCh&&sbc.removeChannel(userCh)}catch(e){}presenceCh=null;userCh=null;onlineMap={}}
 function trackPresence(){if(presenceCh&&profile)try{presenceCh.track({username:profile.username,room:code||null})}catch(e){}}
-function onEnteredRoom(c){trackPresence()}
+function onEnteredRoom(c){trackPresence();try{history.pushState({sint:'room'},'','?r='+c)}catch(e){}}
 function onLeftRoom(){invitedHere=new Set();setTimeout(trackPresence,0)}
 
 // ===== Statistiche =====
@@ -543,7 +559,7 @@ async function loadBadges(){try{const {data}=await sbc.rpc('player_badges');devI
   if(RECOVERY&&s)recover();
   if(s)await onSession(s);
   else if(pendingRoom&&me.name){const c=pendingRoom;pendingRoom=null;joinRoom(c)}
-  else show('welcome');
+  else show('welcome','',{root:true});
   if(oerr)toast(decodeURIComponent(oerr).replace(/\+/g,' '),5000);
   if(location.hash&&/access_token|error/.test(location.hash))setUrl(location.pathname+location.search);
 })();

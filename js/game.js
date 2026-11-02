@@ -231,7 +231,8 @@ const VIEWS={
     const pod=top.map((p,i)=>p?`<div class="pod ${cls[i]}" style="--d:${delay[i]}s">${i===1?'<div class="crown">👑</div>':''}${av(p,'lg')}<div class="nm">${nm(p)}</div><div class="col"><small>${medal[i]}</small>${p.score}</div></div>`:'').join('');
     const rest=sorted.slice(3).map((p,i)=>`<div class="ri" style="animation-delay:${(1.8+i*.1).toFixed(2)}s"><span class="pos">${i+4}</span>${av(p)}${nm(p)}<b>${p.score}</b></div>`).join('');
     return`<h2>Classifica finale</h2><p class="hint">Chi è più in sintonia con il gruppo?</p><div class="podium">${pod}</div>${rest?`<div class="res rest">${rest}</div>`:''}
-      ${isHost?`<button class="btn primary big" data-a="again">Nuova partita</button>`:`<p class="wait">L'host può avviare una nuova partita.</p>`}`;
+      ${isHost?`<button class="btn primary big" data-a="again">Nuova partita</button>`:`<p class="wait">L'host può avviare una nuova partita.</p>`}
+      <button class="btn ghost big" data-a="exit-end" style="margin-top:10px">Torna alla home</button>`;
   }
 };
 
@@ -241,7 +242,7 @@ function renderTop(){
   if(changed.length){bumpSet=new Set(changed);bumpPhase=S.phase}else if(S.phase!==bumpPhase)bumpSet=new Set();
   prevScores=Object.fromEntries(S.players.map(p=>[p.id,p.score]));
   const pct=S.total?Math.min(100,(S.round+1)/S.total*100):0;
-  $('#top').innerHTML=`<div class="bar"><button class="codechip" data-a="copy">🔗 ${esc(code)}</button>${inGame&&S.phase!=='end'?`<span class="rnd">Round ${Math.min(S.round+1,S.total)}/${S.total}<span class="prog"><span style="width:${pct}%"></span></span></span>`:''}<button class="exit" data-a="exit">Esci</button></div>
+  $('#top').innerHTML=`<div class="bar"><button class="codechip" data-a="copy">🔗 ${esc(code)}</button>${inGame&&S.phase!=='end'?`<span class="rnd">Round ${Math.min(S.round+1,S.total)}/${S.total}<span class="prog"><span style="width:${pct}%"></span></span></span>`:''}<button class="exit" data-a="exit" aria-label="Esci dalla partita"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Esci</button></div>
   ${inGame?`<div class="scores">${sorted.map(p=>`<span class="sc ${online.has(p.id)?'':'off'} ${p.id===S.psychicId&&S.phase!=='end'?'psy':''} ${bumpSet.has(p.id)?'bump':''}">${av(p,'sm')}${nm(p)} <b>${p.score}</b></span>`).join('')}</div>`:''}`;
 }
 function render(){
@@ -297,6 +298,7 @@ function act(a,el){
     case 'skip':if(confirm('Saltare questo round? Nessuno prende punti.'))send({type:'skip'});break;
     case 'next':send({type:'next'});break;
     case 'again':send({type:'again'});break;
+    case 'exit-end':leave();goHome();break;
   }
 }
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b&&!b.disabled)act(b.dataset.a,b)});
