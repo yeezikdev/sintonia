@@ -185,6 +185,26 @@ h2{text-align:center;margin:8px 0 6px;font-size:28px;font-weight:900}
 #toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,40px) scale(.9);background:#fff;color:#120f1f;padding:11px 20px;border-radius:999px;font-weight:700;opacity:0;transition:.35s var(--spring);pointer-events:none;z-index:20;max-width:90vw;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.4)}
 #toast.show{opacity:1;transform:translate(-50%,0) scale(1)}
 .confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:30}
+/* versione e novità */
+.ver{position:relative;z-index:1;text-align:center;padding:0 16px 28px}
+.ver button{background:rgba(29,24,51,.7);border:1px solid var(--line);color:var(--mut);border-radius:999px;padding:6px 14px;font-size:12px;font-weight:600;letter-spacing:.04em}
+.ver button b{color:var(--acc2)}
+.ver button .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--acc);margin-left:6px;vertical-align:middle;animation:pulse 1.6s infinite}
+.modal{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center;background:rgba(8,6,16,.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:fade .25s both}
+.modal.closing{animation:fade .2s reverse both}
+.sheet{width:100%;max-width:520px;max-height:82vh;overflow:auto;background:#1a1530;border:1px solid var(--line);border-bottom:none;border-radius:24px 24px 0 0;padding:10px 20px 28px;animation:sheet .45s var(--spring) both}
+.modal.closing .sheet{animation:sheet .2s reverse both}
+.sheet .grab{width:44px;height:5px;border-radius:9px;background:var(--line);margin:4px auto 14px}
+.sheet h2{text-align:left;margin:0 0 4px;font-size:24px}
+.sheet .note{margin-top:16px;padding:14px 16px;border-radius:16px;background:rgba(38,32,68,.6);border:1px solid var(--line)}
+.sheet .note:first-of-type{border-color:var(--acc)}
+.sheet .note h4{margin:0 0 2px;display:flex;align-items:center;gap:8px;font-size:17px}
+.sheet .note h4 .tag{font-size:11px;background:var(--acc);color:#fff;border-radius:6px;padding:2px 7px}
+.sheet .note .d{color:var(--mut);font-size:13px}
+.sheet .note ul{margin:8px 0 0;padding-left:20px;line-height:1.55;color:#dcd8f2}
+.sheet .close{width:100%;margin-top:18px}
+@keyframes fade{from{opacity:0}}
+@keyframes sheet{from{transform:translateY(100%)}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;animation-delay:0s!important;transition-duration:.01ms!important}.dial .cover.opening{transform:rotate(180deg)}}
 </style>
 </head>
@@ -192,6 +212,7 @@ h2{text-align:center;margin:8px 0 6px;font-size:28px;font-weight:900}
 <div class="bg" aria-hidden="true"><b></b><b></b><b></b></div>
 <header id="top"></header>
 <main id="app"></main>
+<footer class="ver"><button id="verBtn" type="button"></button></footer>
 <div id="toast"></div>
 <script>
 // ===== Config Supabase (solo Realtime, nessuna tabella) =====
@@ -532,6 +553,26 @@ function act(a,el){
   }
 }
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b&&!b.disabled)act(b.dataset.a,b)});
+
+
+// ===== Versione e patch notes =====
+const VERSION='1.2';
+const NOTES=[
+  {v:'1.2',d:'2 novembre 2026',t:'Grafica nuova',l:['Quadrante ridisegnato con cornice luminosa, tacche e lancetta che brilla','Sportello che si apre sul bersaglio al momento della rivelazione','Le lancette di tutti scattano una alla volta verso la risposta','Coriandoli quando qualcuno fa centro e alla fine della partita','Podio finale con colonne che salgono e corona sul vincitore','Sfondo animato, avatar colorati con l\'iniziale e barra dei round','Vibrazione leggera mentre muovi la lancetta','Versione e novità in fondo alla pagina']},
+  {v:'1.1',d:'2 novembre 2026',t:'Connessione più affidabile',l:['Risolto il blocco su "Crea una stanza"','Messaggio chiaro se il server di gioco non risponde','Avviso se il gioco è aperto come file o in anteprima']},
+  {v:'1.0',d:'2 novembre 2026',t:'Prima versione',l:['Stanze con codice di 4 lettere, QR e link d\'invito','Ognuno gioca dal proprio telefono','A turno un Sensitivo, circa 70 carte in italiano','Punti 4/3/2 e classifica finale']}
+];
+function renderVer(){const b=$('#verBtn');if(!b)return;const seen=ls.get('sintonia_ver')===VERSION;b.innerHTML=`Sintonia <b>v${VERSION}</b> · Novità${seen?'':'<span class="dot"></span>'}`}
+function openNotes(){
+  ls.set('sintonia_ver',VERSION);renderVer();
+  const m=document.createElement('div');m.className='modal';
+  m.innerHTML=`<div class="sheet" role="dialog" aria-label="Novità"><div class="grab"></div><h2>Novità</h2><p class="hint" style="text-align:left;margin:0">Cosa è cambiato in ogni versione</p>${NOTES.map((n,i)=>`<div class="note"><h4>v${n.v} · ${esc(n.t)}${i===0?'<span class="tag">attuale</span>':''}</h4><div class="d">${esc(n.d)}</div><ul>${n.l.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')}<button class="btn ghost close" type="button">Chiudi</button></div>`;
+  const close=()=>{m.classList.add('closing');setTimeout(()=>m.remove(),200)};
+  m.addEventListener('click',e=>{if(e.target===m||e.target.closest('.close'))close()});
+  document.body.appendChild(m);
+}
+$('#verBtn').addEventListener('click',openNotes);
+renderVer();
 
 // ===== Avvio =====
 (function init(){
