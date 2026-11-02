@@ -94,6 +94,13 @@ function pickColor(S,want){const used=new Set(S.players.map(p=>p.color));if(want
 function ensureMe(){const p=state.players.find(x=>x.id===me.id);if(p){p.name=me.name;p.uid=me.uid||null}else state.players.push({id:me.id,name:me.name,score:0,color:pickColor(state,me.color),uid:me.uid||null});state.hostId=me.id;if(!state.history)state.history=[]}
 function pickCard(){const S=state;if(S.used.length>=CARDS.length)S.used=[];let i;do{i=Math.floor(Math.random()*CARDS.length)}while(S.used.includes(i));S.used.push(i);return CARDS[i]}
 function startRound(){const S=state;if(!S.order.length){S.phase='lobby';return}S.psychicId=S.order[S.round%S.order.length];S.card=pickCard();S.target=Math.round(3+Math.random()*94);S.clue='';S.guesses={};S.pts={};S.phase='clue'}
+function doRematch(){
+  const S=state;
+  S.players=S.players.filter(p=>online.has(p.id)||p.id===S.hostId);
+  S.rematch=[];
+  if(S.players.length<2){S.phase='lobby';S.players.forEach(x=>x.score=0);return}
+  S.players.forEach(x=>x.score=0);S.order=shuffle(S.players.map(x=>x.id));S.total=S.order.length*S.laps;S.round=0;S.matchId=uuid();S.history=[];startRound();
+}
 function nextRound(){const S=state;S.round++;if(S.round>=S.total||!S.order.length)S.phase='end';else startRound()}
 const scoreFor=d=>d<=4?4:d<=10?3:d<=17?2:0;
 function reveal(){
@@ -121,7 +128,10 @@ function handle(a){
     case 'next':if(isH&&S.phase==='reveal')nextRound();break;
     case 'skip':if(isH&&(S.phase==='clue'||S.phase==='guess'))nextRound();break;
     case 'kick':if(isH&&a.id!==S.hostId){S.players=S.players.filter(x=>x.id!==a.id);S.order=S.order.filter(x=>x!==a.id);delete S.guesses[a.id];if(S.psychicId===a.id&&(S.phase==='clue'||S.phase==='guess')){S.round--;nextRound()}else autoReveal()}break;
-    case 'again':if(isH&&S.phase==='end'){S.phase='lobby';S.players.forEach(x=>x.score=0)}break;
+    case 'again':if(isH&&S.phase==='end'){S.phase='lobby';S.rematch=[];S.players.forEach(x=>x.score=0)}break;
+    case 'rematch':if(S.phase==='end'&&p){S.rematch=S.rematch||[];if(!S.rematch.includes(a.from))S.rematch.push(a.from);
+      const here=S.players.filter(x=>online.has(x.id)).map(x=>x.id);
+      if(isH||(here.length>=2&&here.every(id=>S.rematch.includes(id))))doRematch()}break;
     default:return;
   }
   push();
@@ -232,7 +242,9 @@ const VIEWS={
     const rest=sorted.slice(3).map((p,i)=>`<div class="ri" style="animation-delay:${(1.8+i*.1).toFixed(2)}s"><span class="pos">${i+4}</span>${av(p)}${nm(p)}<b>${p.score}</b></div>`).join('');
     return`<h2>Classifica finale</h2><p class="hint">Chi è più in sintonia con il gruppo?</p><div class="podium">${pod}</div>${rest?`<div class="res rest">${rest}</div>`:''}
       <button class="btn big sharebtn" data-go="share">📸 Condividi il risultato</button>
-      ${isHost?`<button class="btn primary big" data-a="again" style="margin-top:10px">Nuova partita</button>`:`<p class="wait">L'host può avviare una nuova partita.</p>`}
+      <button class="btn primary big" data-a="rematch" id="rematchBtn" style="margin-top:10px">🔁 Rivincita</button>
+      <div id="rematchst"></div>
+      ${isHost?`<button class="btn ghost big" data-a="again" style="margin-top:10px">Cambia giocatori o regole</button>`:''}
       <button class="btn ghost big" data-a="exit-end" style="margin-top:10px">Torna alla home</button>`;
   }
 };
@@ -273,6 +285,9 @@ function updateDyn(){
   const ends=$('#ends');if(ends&&S.card){const k=S.card.join('|');ends.innerHTML=`<span>${esc(S.card[0])}</span><span>${esc(S.card[1])}</span>`;if(lastCard&&lastCard!==k){ends.classList.remove('swap');void ends.offsetWidth;ends.classList.add('swap')}lastCard=k}
   const pl=$('#plist');if(pl){pl.innerHTML=S.players.map(p=>{const isNew=!seenPlayers.has(p.id);return`<div class="pl ${online.has(p.id)?'':'off'} ${isNew?'new':''}">${av(p)}<span>${nm(p)}</span>${p.id===S.hostId?'<em>host</em>':''}${p.id===me.id?'<em>tu</em>':''}${isHost&&!online.has(p.id)&&p.id!==S.hostId?`<button class="x" data-a="kick" data-id="${p.id}">rimuovi</button>`:''}</div>`}).join('');if(seenPlayers.size&&S.players.some(p=>!seenPlayers.has(p.id)&&p.id!==me.id))SFX.join();S.players.forEach(p=>seenPlayers.add(p.id))}
   const lp=$('#laps');if(lp)lp.innerHTML=[1,2,3].map(v=>`<button data-a="laps" data-v="${v}" class="${S.laps===v?'on':''}">${v}×</button>`).join('');
+  const rb=$('#rematchBtn');if(rb){const votes=(S.rematch||[]).filter(id=>S.players.some(p=>p.id===id)),mine=votes.includes(me.id);
+    rb.disabled=!isHost&&mine;rb.textContent=isHost?(votes.filter(v=>v!==me.id).length?(n=>`🔁 Rivincita · ${n} ${n===1?'pronto':'pronti'}`)(votes.filter(v=>v!==me.id).length):'🔁 Rivincita'):mine?'Pronto! Aspetto gli altri…':'🔁 Rivincita';
+    const rs=$('#rematchst');if(rs)rs.innerHTML=votes.length?`<p class="hint" style="margin:10px 0 0">Vogliono la rivincita:</p><div class="chips" style="margin-top:6px">${votes.map(id=>{const p=playerOf(id);return`<span class="chip done">${av(p,'sm')}${nm(p)}</span>`}).join('')}</div>${isHost?'':'<p class="hint" style="margin-top:6px">Si riparte quando sono pronti tutti o quando l\'host conferma</p>'}`:''}
   const startB=$('#startBtn');if(startB){const few=S.players.length<2;startB.disabled=few;startB.textContent=few?'Servono almeno 2 giocatori':`Inizia la partita (${S.players.length} giocatori)`}
   const st=$('#status');if(st){const gs=S.players.filter(p=>p.id!==S.psychicId);st.innerHTML=`<div class="chips">${gs.map(p=>{const d=S.guesses[p.id]!=null;return`<span class="chip ${d?'done':''} ${online.has(p.id)?'':'off'}">${av(p,'sm')}${nm(p)} <span class="st">${d?'✅':'⏳'}</span></span>`}).join('')}</div>`}
   paintLive();
@@ -299,6 +314,7 @@ function act(a,el){
     case 'skip':if(confirm('Saltare questo round? Nessuno prende punti.'))send({type:'skip'});break;
     case 'next':send({type:'next'});break;
     case 'again':send({type:'again'});break;
+    case 'rematch':buzz(20);SFX.pop();send({type:'rematch'});break;
     case 'exit-end':leave();goHome();break;
   }
 }

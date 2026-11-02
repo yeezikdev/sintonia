@@ -101,7 +101,7 @@ const L_VIEWS={
       <div class="ri anim psyrow" style="animation-delay:${(1.7+gs.length*.12).toFixed(2)}s">${av(LP(L.psy))}<div>${nm(LP(L.psy))}<br><span class="m">Sensitivo · media del gruppo</span></div><b class="pts">+${L.pts.psy||0}</b></div></div>
       <button type="button" class="btn primary big" data-go="l-nextround">${last?'Vedi la classifica 🏆':'Prossimo round →'}</button>`},
   end:()=>{
-    const again=`<button type="button" class="btn big sharebtn" data-go="share">📸 Condividi il risultato</button><button type="button" class="btn primary big" data-go="l-again" style="margin-top:10px">Gioca ancora</button><button type="button" class="btn ghost big" data-go="l-home" style="margin-top:10px">Torna alla home</button>`;
+    const again=`<button type="button" class="btn big sharebtn" data-go="share">📸 Condividi il risultato</button><button type="button" class="btn primary big" data-go="l-again" style="margin-top:10px">🔁 Rivincita</button><button type="button" class="btn ghost big" data-go="l-home" style="margin-top:10px">Torna alla home</button>`;
     if(L.mode==='team'){const max=L.total*4,pct=Math.round(L.team/max*100);
       const verdict=pct>=75?'Mente alveare! 🧠':pct>=55?'Ottima sintonia!':pct>=35?'Non male, ci siete quasi':'Serve più allenamento 😅';
       return`<h2>Risultato della squadra</h2><p class="hint">${verdict}</p>

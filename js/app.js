@@ -511,8 +511,9 @@ async function scanQR(){
 }
 
 // ===== Versione e patch notes =====
-const VERSION='2.3';
+const VERSION='2.4';
 const NOTES=[
+  {v:'2.4',d:'2 novembre 2026',t:'Rivincita',l:['A fine partita il tasto Rivincita fa ripartire subito la partita con gli stessi giocatori, senza passare dalla lobby','L\'host la avvia con un tocco; gli altri possono chiederla e si riparte quando sono pronti tutti','Chi ha lasciato la stanza non viene incluso nella rivincita','L\'host può ancora tornare alla lobby per cambiare giocatori o regole','Anche su un solo telefono c\'è la Rivincita']},
   {v:'2.3',d:'2 novembre 2026',t:'Suoni e risultati da condividere',l:['Effetti sonori: tic della lancetta, rullo di tamburi prima della rivelazione, festa per il centro pieno e fanfara finale','Tasto con l\'altoparlante per accendere o spegnere i suoni','A fine partita "Condividi il risultato" crea un\'immagine in formato storia con podio e indizio della partita','Funziona sia online sia su un solo telefono']},
   {v:'2.2',d:'2 novembre 2026',t:'Un solo telefono',l:['Nuova modalità per giocare in compagnia passandovi un solo telefono, senza creare stanze','Due modi: "Ognuno per sé" con classifica individuale, oppure "Tutti insieme" con punteggio di squadra','Schermate di passaggio del telefono, così nessuno sbircia il bersaglio o le risposte degli altri','Le partite su un solo telefono non contano nelle statistiche']},
   {v:'2.1',d:'2 novembre 2026',t:'Home più pulita',l:['Anche la home con account ha il quadrante, i due riquadri affiancati e solo inviti e amici online','Il quadrante animato è il protagonista della home','Solo due riquadri affiancati: Crea una stanza a sinistra, Entra in una stanza a destra','Il nome da ospite si chiede solo quando inizi a giocare, e poi si ricorda','Accesso e regole diventano link discreti in basso','Le regole si aprono in un pannello a passi']},
