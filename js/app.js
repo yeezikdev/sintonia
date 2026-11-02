@@ -66,7 +66,10 @@ window.addEventListener('popstate',()=>{
 const playCards=(sub1,sub2)=>`
   <button type="button" class="playcard create" data-go="create"><span class="pi">${ICON.plus}</span><span class="pt"><b>Crea una stanza</b><small>${sub1}</small></span></button>
   <button type="button" class="playcard join" data-go="entra"><span class="pi">${ICON.enter}</span><span class="pt"><b>Entra in una stanza</b><small>${sub2}</small></span></button>`;
-const resumeBtn=()=>{const s=ls.get('sintonia_host');return s&&s.state&&s.state.hostId===me.id&&s.state.phase!=='end'?`<button type="button" class="btn ghost" data-go="resume">Riprendi la stanza ${esc(s.code)}</button>`:''};
+const resumeBtn=()=>{const s=ls.get('sintonia_host');if(!(s&&s.state&&s.state.hostId===me.id&&s.state.phase!=='end'))return'';
+  const S=s.state,n=(S.players||[]).length,lobby=S.phase==='lobby';
+  const info=lobby?`Stanza ${esc(s.code)} · in attesa nella lobby · ${n} ${n===1?'giocatore':'giocatori'}`:`Stanza ${esc(s.code)} · round ${Math.min(S.round+1,S.total)} di ${S.total} · ${n} giocatori`;
+  return`<div class="resume"><span class="pi sm rs">${ICON.play}</span><div class="rt"><b>${lobby?'Stanza aperta':'Partita in corso'}</b><small>${info}${s.at?' · '+ago(s.at):''}</small></div><button type="button" class="btn sm primary" data-go="resume">Riprendi</button><button type="button" class="iconbtn sm" data-go="resume-x" aria-label="Chiudi la partita">${ICON.x}</button></div>`};
 const rules=`<details class="rules"><summary>Come si gioca</summary>
   <p>A turno uno di voi è il <b>Sensitivo</b>: vede dove si trova il bersaglio su una scala tra due estremi (es. <b>Freddo ↔ Caldo</b>) e scrive un indizio.</p>
   <p>Gli altri, ognuno sul proprio telefono, spostano la lancetta dove pensano sia il bersaglio.</p>
@@ -216,6 +219,7 @@ async function go(a,el){
     case 'g-join':withName(()=>{const r=pendingRoom;pendingRoom=null;joinRoom(r)});break;
     case 'gname':openNameSheet(()=>refresh());break;
     case 'rules':openRules();break;
+    case 'resume-x':if(confirm('Chiudere questa partita? Non potrai più riprenderla.')){ls.del('sintonia_host');refresh()}break;
     case 'resume':{const s=ls.get('sintonia_host');if(s&&s.state){state=s.state;enterRoom(s.code,true)}break}
     case 'join-code':{const c=($('#codein')||{}).value||'';if(c.length!==4){toast('Il codice ha 4 lettere');return}pendingRoom=null;joinRoom(c);break}
     case 'scan':scanQR();break;

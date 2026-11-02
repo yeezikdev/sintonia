@@ -128,7 +128,7 @@ function handle(a){
 }
 
 // ===== Rete =====
-function push(){if(!isHost||!state)return;ls.set('sintonia_host',{code,state});if(channel)channel.send({type:'broadcast',event:'state',payload:state});render()}
+function push(){if(!isHost||!state)return;ls.set('sintonia_host',{code,state,at:Date.now()});if(channel)channel.send({type:'broadcast',event:'state',payload:state});render()}
 function send(a){a.from=me.id;if(isHost)handle(a);else if(channel)channel.send({type:'broadcast',event:'action',payload:a})}
 async function enterRoom(c,host){
   try{await enterRoomInner(c,host)}catch(e){console.error(e);leave();state=null;goHome('Impossibile collegarsi: '+(e&&e.message||e))}
