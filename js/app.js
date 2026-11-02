@@ -288,7 +288,6 @@ function openLogin(){
     <p class="hint" style="text-align:left;margin:0 0 14px">${loginMode==='login'?'Accedi per ritrovare statistiche e amici.':'Poi sceglierai il tuo nome utente.'}</p>
     <form id="lform"><label class="lbl" for="lemail">Email</label><input id="lemail" type="email" autocomplete="email" required>
     <label class="lbl" for="lpass" style="margin-top:12px">Password</label><input id="lpass" type="password" minlength="6" autocomplete="${loginMode==='login'?'current-password':'new-password'}" required>
-    ${loginMode==='login'?'<button type="button" class="linkbtn forgot" id="lforgot">Password dimenticata?</button>':''}
     <p class="umsg bad" id="lerr"></p>
     <button type="submit" class="btn primary big" id="lgo">${loginMode==='login'?'Accedi':'Crea account'}</button></form>
     <div class="or">oppure</div><button type="button" class="btn google big" id="lgoogle"><span class="g">G</span>Continua con Google</button>
@@ -485,9 +484,8 @@ async function scanQR(){
 }
 
 // ===== Versione e patch notes =====
-const VERSION='2.2';
+const VERSION='2.1';
 const NOTES=[
-  {v:'2.2',d:'2 novembre 2026',t:'Password dimenticata',l:['Nella schermata di accesso c\'è "Password dimenticata?"','Arriva un\'email con un link: aprendolo scegli una nuova password direttamente nel gioco']},
   {v:'2.1',d:'2 novembre 2026',t:'Home più pulita',l:['Anche la home con account ha il quadrante, i due riquadri affiancati e solo inviti e amici online','Il quadrante animato è il protagonista della home','Solo due riquadri affiancati: Crea una stanza a sinistra, Entra in una stanza a destra','Il nome da ospite si chiede solo quando inizi a giocare, e poi si ricorda','Accesso e regole diventano link discreti in basso','Le regole si aprono in un pannello a passi']},
   {v:'2.0',d:'2 novembre 2026',t:'Account, amici e statistiche',l:['Si gioca subito come ospite: scrivi un nome e diventi anon_nome','Accesso con email o Google e nome utente unico scelto da te','Home separata tra "Crea una stanza" ed "Entra in una stanza"','Schermata per entrare con il codice o scansionando il QR','Amici: cerca per nome utente, richieste, chi è online e in quale stanza','Invita gli amici nella tua stanza con un tocco, anche se sono offline','Profilo con livello, partite, vittorie, centri, anima gemella e indizio migliore','Le partite giocate con un account vengono salvate automaticamente']},
   {v:'1.3',d:'2 novembre 2026',t:'Lancette in diretta',l:['Il Sensitivo vede in tempo reale le lancette degli altri mentre le muovono','Le lancette restano sfumate finché il giocatore non conferma, poi diventano piene con un segno verde','Etichetta "In diretta" sul quadrante del Sensitivo']},
