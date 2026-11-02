@@ -1,6 +1,7 @@
 // ===== Sintonia · base comune (connessione, utility, identità) =====
 const SB_URL='https://ncwuekrvibuynvozqyqx.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jd3Vla3J2aWJ1eW52b3pxeXF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM2MDM0NTQsImV4cCI6MjEwOTE3OTQ1NH0.bQ84kmd0dDVTykZgCceOPjMHXE3y99lwP8RLEQozQJU';
+const RECOVERY=/type=recovery/.test(location.hash);
 const sbc=window.supabase?supabase.createClient(SB_URL,SB_KEY,{realtime:{params:{eventsPerSecond:20}}}):null;
 function getClient(){if(!sbc)throw new Error('Libreria di connessione non caricata. Controlla la connessione internet e ricarica la pagina.');return sbc}
 function setUrl(q){try{history.replaceState(null,'',q)}catch(e){}}

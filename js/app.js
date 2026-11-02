@@ -288,12 +288,24 @@ function openLogin(){
     <p class="hint" style="text-align:left;margin:0 0 14px">${loginMode==='login'?'Accedi per ritrovare statistiche e amici.':'Poi sceglierai il tuo nome utente.'}</p>
     <form id="lform"><label class="lbl" for="lemail">Email</label><input id="lemail" type="email" autocomplete="email" required>
     <label class="lbl" for="lpass" style="margin-top:12px">Password</label><input id="lpass" type="password" minlength="6" autocomplete="${loginMode==='login'?'current-password':'new-password'}" required>
+    ${loginMode==='login'?'<button type="button" class="linkbtn forgot" id="lforgot">Password dimenticata?</button>':''}
     <p class="umsg bad" id="lerr"></p>
     <button type="submit" class="btn primary big" id="lgo">${loginMode==='login'?'Accedi':'Crea account'}</button></form>
     <div class="or">oppure</div><button type="button" class="btn google big" id="lgoogle"><span class="g">G</span>Continua con Google</button>
     <button class="btn ghost close" type="button">Chiudi</button></div>`;
     m.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{loginMode=b.dataset.m;draw()});
     m.querySelector('#lgoogle').onclick=()=>{close();googleLogin()};
+    const fg=m.querySelector('#lforgot');
+    if(fg)fg.onclick=async()=>{
+      const email=m.querySelector('#lemail').value.trim(),err=m.querySelector('#lerr');
+      if(!/^\S+@\S+\.\S+$/.test(email)){err.className='umsg bad';err.textContent='Scrivi prima la tua email qui sopra';m.querySelector('#lemail').focus();return}
+      fg.disabled=true;
+      const {error}=await sbc.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+      fg.disabled=false;
+      if(error&&/rate limit|too many/i.test(error.message||'')){err.className='umsg bad';err.textContent='Troppe richieste, riprova tra un po\u2019'}
+      else if(error){err.className='umsg bad';err.textContent='Non riesco a mandare l\u2019email, riprova più tardi'}
+      else{err.className='umsg ok';err.textContent='Se l\u2019email è registrata ti arriva un link per scegliere una nuova password. Controlla anche lo spam.'}
+    };
     m.querySelector('#lform').onsubmit=async e=>{
       e.preventDefault();const email=m.querySelector('#lemail').value.trim(),password=m.querySelector('#lpass').value,btn=m.querySelector('#lgo'),err=m.querySelector('#lerr');
       if(password.length<6){err.textContent='La password deve avere almeno 6 caratteri';return}
@@ -473,8 +485,9 @@ async function scanQR(){
 }
 
 // ===== Versione e patch notes =====
-const VERSION='2.1';
+const VERSION='2.2';
 const NOTES=[
+  {v:'2.2',d:'2 novembre 2026',t:'Password dimenticata',l:['Nella schermata di accesso c\'è "Password dimenticata?"','Arriva un\'email con un link: aprendolo scegli una nuova password direttamente nel gioco']},
   {v:'2.1',d:'2 novembre 2026',t:'Home più pulita',l:['Anche la home con account ha il quadrante, i due riquadri affiancati e solo inviti e amici online','Il quadrante animato è il protagonista della home','Solo due riquadri affiancati: Crea una stanza a sinistra, Entra in una stanza a destra','Il nome da ospite si chiede solo quando inizi a giocare, e poi si ricorda','Accesso e regole diventano link discreti in basso','Le regole si aprono in un pannello a passi']},
   {v:'2.0',d:'2 novembre 2026',t:'Account, amici e statistiche',l:['Si gioca subito come ospite: scrivi un nome e diventi anon_nome','Accesso con email o Google e nome utente unico scelto da te','Home separata tra "Crea una stanza" ed "Entra in una stanza"','Schermata per entrare con il codice o scansionando il QR','Amici: cerca per nome utente, richieste, chi è online e in quale stanza','Invita gli amici nella tua stanza con un tocco, anche se sono offline','Profilo con livello, partite, vittorie, centri, anima gemella e indizio migliore','Le partite giocate con un account vengono salvate automaticamente']},
   {v:'1.3',d:'2 novembre 2026',t:'Lancette in diretta',l:['Il Sensitivo vede in tempo reale le lancette degli altri mentre le muovono','Le lancette restano sfumate finché il giocatore non conferma, poi diventano piene con un segno verde','Etichetta "In diretta" sul quadrante del Sensitivo']},
@@ -493,6 +506,26 @@ function openNotes(){
 }
 $('#verBtn').addEventListener('click',openNotes);
 
+// ===== Nuova password (dal link dell'email) =====
+function openNewPassword(){
+  const m=document.createElement('div');m.className='modal';
+  m.innerHTML=`<div class="sheet" role="dialog" aria-label="Nuova password"><div class="grab"></div>
+    <h2 style="text-align:left;margin:4px 0 4px">Scegli una nuova password</h2>
+    <p class="hint" style="text-align:left;margin:0 0 14px">Almeno 6 caratteri.</p>
+    <form id="pform"><label class="lbl" for="np1">Nuova password</label><input id="np1" type="password" minlength="6" autocomplete="new-password" required>
+    <label class="lbl" for="np2" style="margin-top:12px">Ripeti la password</label><input id="np2" type="password" minlength="6" autocomplete="new-password" required>
+    <p class="umsg bad" id="perr"></p><button type="submit" class="btn primary big" id="pgo">Salva la password</button></form></div>`;
+  document.body.appendChild(m);setTimeout(()=>{const e=m.querySelector('#np1');if(e)e.focus()},300);
+  m.querySelector('#pform').onsubmit=async e=>{e.preventDefault();
+    const a=m.querySelector('#np1').value,b=m.querySelector('#np2').value,err=m.querySelector('#perr'),btn=m.querySelector('#pgo');
+    if(a.length<6){err.textContent='La password deve avere almeno 6 caratteri';return}
+    if(a!==b){err.textContent='Le due password non coincidono';return}
+    btn.disabled=true;const {error}=await sbc.auth.updateUser({password:a});btn.disabled=false;
+    if(error){err.textContent=/different from the old|same/i.test(error.message||'')?'Scegli una password diversa da quella vecchia':'Non riuscito: '+error.message;return}
+    m.classList.add('closing');setTimeout(()=>m.remove(),200);toast('Password aggiornata!');buzz(20);
+  };
+}
+
 // ===== Spunta verificata =====
 async function loadBadges(){try{const {data}=await sbc.rpc('player_badges');devIds=new Set((data||[]).filter(x=>x.badge==='dev').map(x=>x.id));if(code)render();else refresh()}catch(e){}}
 
@@ -506,8 +539,10 @@ async function loadBadges(){try{const {data}=await sbc.rpc('player_badges');devI
   if(sbc)loadBadges();
   if(!sbc){show('welcome','Libreria di connessione non caricata. Controlla la connessione internet e ricarica la pagina.');return}
   $('#app').innerHTML=`<div class="center"><div class="spin"></div>Avvio…</div>`;
+  let recoveryShown=false;const recover=()=>{if(recoveryShown)return;recoveryShown=true;setTimeout(openNewPassword,600)};
+  sbc.auth.onAuthStateChange((ev,sess)=>{if(ev==='PASSWORD_RECOVERY')recover();if(ev==='SIGNED_IN'||ev==='SIGNED_OUT'||ev==='PASSWORD_RECOVERY')setTimeout(()=>onSession(sess),0)});
   let s=null;try{const {data}=await sbc.auth.getSession();s=data.session}catch(e){}
-  sbc.auth.onAuthStateChange((ev,sess)=>{if(ev==='SIGNED_IN'||ev==='SIGNED_OUT')setTimeout(()=>onSession(sess),0)});
+  if(RECOVERY&&s)recover();
   if(s)await onSession(s);
   else if(pendingRoom&&me.name){const c=pendingRoom;pendingRoom=null;joinRoom(c)}
   else show('welcome');
