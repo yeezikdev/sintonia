@@ -114,7 +114,7 @@ const SCREENS={
     return`
     <div class="acct-top">
       <button type="button" class="mechip" data-go="stats">${av({name:profile.username,color:profile.color},'sm')}<b>${nm(profile)}</b>${L?`<span class="lv">LV ${L.lv}</span>`:''}</button>
-      <span class="tr">${soundBtn('iconbtn sndb')}<button type="button" class="iconbtn" data-go="amici" aria-label="Amici e richieste">${ICON.bell}${friends.incoming.length?'<span class="dotb"></span>':''}</button></span>
+      <span class="tr">${soundBtn('iconbtn sndb')}<button type="button" class="iconbtn" data-go="amici" aria-label="Amici${friends.incoming.length?' · '+friends.incoming.length+' richieste':''}">${ICON.people}${friends.incoming.length?`<span class="cntb">${friends.incoming.length}</span>`:''}</button></span>
     </div>
     ${homeErr?`<div class="err">${esc(homeErr)}</div>`:''}
     <div class="hero2 compact">
