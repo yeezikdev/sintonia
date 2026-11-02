@@ -68,8 +68,8 @@ const SCREENS={
       <p class="sub tc">Leggi nella mente dei tuoi amici</p>
     </div>
     <div class="actions">
-      ${pendingRoom?`<button type="button" class="btn primary big" data-go="g-join">${ICON.enter}Entra nella stanza ${esc(pendingRoom)}</button><button type="button" class="btn big join2" data-go="create">${ICON.plus}Crea una nuova stanza</button>`
-        :`<button type="button" class="btn primary big" data-go="create">${ICON.plus}Crea una stanza</button><button type="button" class="btn big join2" data-go="entra">${ICON.enter}Entra in una stanza</button>`}
+      ${pendingRoom?`<button type="button" class="btn big join2 tile" data-go="create">${ICON.plus}<span>Crea una nuova stanza</span><small>Sei l'host</small></button><button type="button" class="btn primary big tile" data-go="g-join">${ICON.enter}<span>Entra nella stanza ${esc(pendingRoom)}</span><small>Ti hanno invitato</small></button>`
+        :`<button type="button" class="btn primary big tile" data-go="create">${ICON.plus}<span>Crea una stanza</span><small>Sei l'host</small></button><button type="button" class="btn big join2 tile" data-go="entra">${ICON.enter}<span>Entra in una stanza</span><small>Codice o QR</small></button>`}
       ${resumeBtn()}
     </div>
     ${me.name?`<button type="button" class="whoami" data-go="gname">${av({name:me.name,color:me.color},'sm')}Giochi come <b>${esc(me.name)}</b><span>cambia</span></button>`:''}
@@ -466,7 +466,7 @@ async function scanQR(){
 // ===== Versione e patch notes =====
 const VERSION='2.1';
 const NOTES=[
-  {v:'2.1',d:'2 novembre 2026',t:'Home più pulita',l:['Il quadrante animato è il protagonista della home','Solo due tasti: Crea una stanza ed Entra in una stanza','Il nome da ospite si chiede solo quando inizi a giocare, e poi si ricorda','Accesso e regole diventano link discreti in basso','Le regole si aprono in un pannello a passi']},
+  {v:'2.1',d:'2 novembre 2026',t:'Home più pulita',l:['Il quadrante animato è il protagonista della home','Solo due riquadri affiancati: Crea una stanza a sinistra, Entra in una stanza a destra','Il nome da ospite si chiede solo quando inizi a giocare, e poi si ricorda','Accesso e regole diventano link discreti in basso','Le regole si aprono in un pannello a passi']},
   {v:'2.0',d:'2 novembre 2026',t:'Account, amici e statistiche',l:['Si gioca subito come ospite: scrivi un nome e diventi anon_nome','Accesso con email o Google e nome utente unico scelto da te','Home separata tra "Crea una stanza" ed "Entra in una stanza"','Schermata per entrare con il codice o scansionando il QR','Amici: cerca per nome utente, richieste, chi è online e in quale stanza','Invita gli amici nella tua stanza con un tocco, anche se sono offline','Profilo con livello, partite, vittorie, centri, anima gemella e indizio migliore','Le partite giocate con un account vengono salvate automaticamente']},
   {v:'1.3',d:'2 novembre 2026',t:'Lancette in diretta',l:['Il Sensitivo vede in tempo reale le lancette degli altri mentre le muovono','Le lancette restano sfumate finché il giocatore non conferma, poi diventano piene con un segno verde','Etichetta "In diretta" sul quadrante del Sensitivo']},
   {v:'1.2',d:'2 novembre 2026',t:'Grafica nuova',l:['Quadrante ridisegnato con cornice luminosa, tacche e lancetta che brilla','Sportello che si apre sul bersaglio al momento della rivelazione','Le lancette di tutti scattano una alla volta verso la risposta','Coriandoli quando qualcuno fa centro e alla fine della partita','Podio finale con colonne che salgono e corona sul vincitore','Sfondo animato, avatar colorati con l\'iniziale e barra dei round','Vibrazione leggera mentre muovi la lancetta','Versione e novità in fondo alla pagina']},

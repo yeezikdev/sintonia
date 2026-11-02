@@ -377,6 +377,14 @@ h3.pink{color:#ff7d8f}
 .rulestep span{width:30px;height:30px;flex:none;border-radius:50%;background:var(--acc);color:#fff;font-weight:900;display:grid;place-items:center}
 .rulestep p{margin:3px 0 0;color:#dcd8f2;line-height:1.5}
 .rulestep b{color:var(--text)}
+
+.actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.actions .btn.tile{flex-direction:column;justify-content:center;min-height:150px;gap:6px;padding:18px 10px;border-radius:24px;line-height:1.2;text-align:center}
+.actions .btn.tile svg{width:34px;height:34px;margin-bottom:4px}
+.actions .btn.tile span{font-size:18px;font-weight:900}
+.actions .btn.tile small{font-size:13px;font-weight:600;opacity:.85}
+.actions .btn.join2.tile small{color:#b9b3d9;opacity:1}
+.actions>.btn.ghost{grid-column:1/-1}
 </style>
 </head>
 <body>
