@@ -496,18 +496,41 @@ async function recordMatch(){
 }
 
 // ===== Lettura QR =====
+function loadJsQR(){
+  if(window.jsQR)return Promise.resolve(true);
+  return new Promise(res=>{const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';sc.onload=()=>res(!!window.jsQR);sc.onerror=()=>res(false);document.head.appendChild(sc)});
+}
 async function scanQR(){
-  if(!('BarcodeDetector' in window)||!navigator.mediaDevices){toast('Inquadra il QR con la fotocamera del telefono: si apre direttamente la stanza',4500);return}
-  let stream;
-  try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})}catch(e){toast('Serve il permesso della fotocamera');return}
   const m=document.createElement('div');m.className='modal center-modal';
-  m.innerHTML=`<div class="scanbox"><video playsinline muted></video><div class="scanframe"></div><p>Inquadra il QR della stanza</p><button class="btn ghost close" type="button">Annulla</button></div>`;
+  m.innerHTML=`<div class="scanbox"><video playsinline muted autoplay></video><div class="scanframe"></div><p id="scanmsg">Avvio la fotocamera…</p><button class="btn ghost close" type="button">Annulla</button></div>`;
   document.body.appendChild(m);
-  const v=m.querySelector('video');v.srcObject=stream;await v.play().catch(()=>{});
-  const det=new BarcodeDetector({formats:['qr_code']});let alive=true;
-  const stop=()=>{alive=false;stream.getTracks().forEach(t=>t.stop());m.remove()};
+  const msg=t=>{const e=m.querySelector('#scanmsg');if(e)e.textContent=t};
+  let stream=null,alive=true;
+  const stop=()=>{alive=false;if(stream)stream.getTracks().forEach(t=>t.stop());m.remove()};
   m.querySelector('.close').onclick=stop;
-  (async function loop(){if(!alive)return;try{const r=await det.detect(v);if(r&&r[0]){const t=r[0].rawValue||'';let c=null;try{c=new URL(t).searchParams.get('r')}catch(e){c=t}c=String(c||'').toUpperCase().replace(/[^A-Z]/g,'');if(c.length===4){buzz(30);stop();joinRoom(c);return}}}catch(e){}setTimeout(loop,250)})();
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){msg('Questo browser non può usare la fotocamera. Inquadra il QR con l’app Fotocamera del telefono.');return}
+  try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false})}
+  catch(e){msg(e&&e.name==='NotAllowedError'?'Serve il permesso della fotocamera: consentilo nelle impostazioni del browser e riprova.':'Non riesco ad aprire la fotocamera. Puoi inquadrare il QR con l’app Fotocamera del telefono.');return}
+  if(!alive){stream.getTracks().forEach(t=>t.stop());return}
+  const v=m.querySelector('video');v.srcObject=stream;try{await v.play()}catch(e){}
+  let det=null;
+  if('BarcodeDetector' in window){try{const f=await BarcodeDetector.getSupportedFormats();if(f.includes('qr_code'))det=new BarcodeDetector({formats:['qr_code']})}catch(e){}}
+  if(!det&&!(await loadJsQR())){msg('Non riesco a caricare il lettore QR. Controlla la connessione.');return}
+  msg('Inquadra il QR della stanza');
+  const cv=document.createElement('canvas'),cx=cv.getContext('2d',{willReadFrequently:true});
+  const found=t=>{let c=null;try{c=new URL(t).searchParams.get('r')}catch(e){c=t}c=String(c||'').toUpperCase().replace(/[^A-Z]/g,'');
+    if(c.length===4){buzz(30);if(typeof SFX!=='undefined')SFX.pop();stop();pendingRoom=null;joinRoom(c);return true}
+    msg('Questo QR non è di una stanza di Sintonia');return false};
+  (async function loop(){
+    if(!alive)return;
+    try{
+      if(v.readyState>=2&&v.videoWidth){
+        if(det){const r=await det.detect(v);if(r&&r[0]&&found(r[0].rawValue||''))return}
+        else{const w=Math.min(640,v.videoWidth),h=Math.round(w*v.videoHeight/v.videoWidth);cv.width=w;cv.height=h;cx.drawImage(v,0,0,w,h);const img=cx.getImageData(0,0,w,h);const q=jsQR(img.data,w,h,{inversionAttempts:'dontInvert'});if(q&&q.data&&found(q.data))return}
+      }
+    }catch(e){}
+    setTimeout(loop,180);
+  })();
 }
 
 // ===== Versione e patch notes =====

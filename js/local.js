@@ -46,7 +46,7 @@ function addLocalName(raw,fromChip){
 function drawAddPlayer(m){
   const added=lsetup.names.slice(1).filter(Boolean),recent=(lsetup.recent||[]).filter(r=>!lsetup.names.some(x=>x.toLowerCase()===r.toLowerCase())).slice(0,8);
   m.querySelector('#addlist').innerHTML=(added.length?`<div class="chips left" style="margin:0 0 12px">${added.map((x,i)=>`<span class="chip done">${av({name:x,color:COLORS[(i+1)%COLORS.length]},'sm')}${esc(x)}</span>`).join('')}</div>`:'')
-    +(recent.length?`<p class="lbl" style="margin:14px 0 8px">Hanno già giocato</p><div class="chips left" style="margin:0">${recent.map(r=>`<button type="button" class="sugchip" data-go="l-quick" data-n="${esc(r)}">+ ${esc(r)}</button>`).join('')}</div>`:'');
+    +(recent.length?`<p class="lbl" style="margin:14px 0 8px">Hanno già giocato</p><div class="chips left" style="margin:0">${recent.map(r=>`<span class="rchip"><button type="button" class="rc-add" data-go="l-quick" data-n="${esc(r)}">+ ${esc(r)}</button><button type="button" class="rc-del" data-go="l-forget" data-n="${esc(r)}" aria-label="Togli ${esc(r)} dalla lista">${ICON.x}</button></span>`).join('')}</div>`:'');
 }
 function openAddPlayer(){
   if(lsetup.names.length>=12){toast('Massimo 12 giocatori');return}
@@ -166,6 +166,9 @@ const LOCAL_GO={
   local:()=>{initSetup();show('localsetup')},
   'l-add':()=>openAddPlayer(),
   'l-quick':el=>{addLocalName(el.dataset.n,true)},
+  'l-forget':el=>{const n=el.dataset.n.toLowerCase();lsetup.recent=(lsetup.recent||[]).filter(r=>r.toLowerCase()!==n);
+    const sv=ls.get('sintonia_local')||{};sv.names=(sv.names||[]).filter(r=>String(r).toLowerCase()!==n);ls.set('sintonia_local',sv);
+    const m=document.querySelector('.modal.addp-m');if(m)drawAddPlayer(m);buzz(10)},
   'l-del':el=>{lsetup.names.splice(+el.dataset.i,1);refresh()},
   'l-mode':el=>{lsetup.mode=el.dataset.m;refresh()},
   'l-laps':el=>{lsetup.laps=+el.dataset.v;refresh()},
