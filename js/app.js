@@ -169,7 +169,8 @@ const SCREENS={
     ${st.best?`<div class="bestclue"><small>Il tuo indizio migliore</small><b>“${esc(st.best.clue)}”</b><span>${esc(st.best.card)} · ${st.best.bulls} centri su ${st.best.n}</span></div>`:''}
     <h3>Ultime partite</h3>
     <div class="flist">${st.recent.length?st.recent.map(r=>`<div class="frow"><span class="posb p${Math.min(r.position,4)}">${r.position}°</span><div class="fi"><b>${r.others.length?'Con '+esc(r.others.slice(0,3).join(', '))+(r.others.length>3?' e altri':''):'Partita'}</b><small>${ago(r.created_at)} · ${r.rounds} round</small></div><b class="ptsr">${r.score} pt</b></div>`).join(''):'<p class="empty">Gioca la tua prima partita con un account per vedere qui le statistiche</p>'}</div>
-    ${profile.badge?`<p class="hint" style="margin-top:22px">${VBADGE} Account verificato: il nome utente non si può cambiare</p><button type="button" class="btn ghost big" data-go="logout" style="margin-top:10px">Esci</button>`:`<div class="grid2" style="margin-top:22px"><button type="button" class="btn" data-go="rename">Cambia nome</button><button type="button" class="btn ghost" data-go="logout">Esci</button></div>`}`}
+    <button type="button" class="btn ghost big danger" data-go="reset-stats" style="margin-top:22px">Azzera statistiche</button>
+    ${profile.badge?`<p class="hint" style="margin-top:16px">${VBADGE} Account verificato: il nome utente non si può cambiare</p><button type="button" class="btn ghost big" data-go="logout" style="margin-top:10px">Esci</button>`:`<div class="grid2" style="margin-top:22px"><button type="button" class="btn" data-go="rename">Cambia nome</button><button type="button" class="btn ghost" data-go="logout">Esci</button></div>`}`}
 };
 
 // ===== Collegamenti delle schermate =====
@@ -226,6 +227,7 @@ async function go(a,el){
     case 'login':openLogin();break;
     case 'google':googleLogin();break;
     case 'logout':if(confirm("Uscire dall'account?")){await sbc.auth.signOut();}break;
+    case 'reset-stats':openResetStats();break;
     case 'rename':if(profile&&profile.badge){toast('Gli account verificati non possono cambiare nome utente');return}show('username');break;
     case 'usug':{const i=$('#user');i.value=el.dataset.v;i.dispatchEvent(new Event('input'));break}
     case 'usave':saveUsername();break;
@@ -454,14 +456,42 @@ function trackPresence(){if(presenceCh&&profile)try{presenceCh.track({username:p
 function onEnteredRoom(c){trackPresence();try{history.pushState({sint:'room'},'','?r='+c)}catch(e){}}
 function onLeftRoom(){invitedHere=new Set();setTimeout(trackPresence,0)}
 
+// ===== Azzera statistiche =====
+function openResetStats(){
+  const m=document.createElement('div');m.className='modal';
+  m.innerHTML=`<div class="sheet" role="dialog" aria-label="Azzera statistiche"><div class="grab"></div>
+    <div class="warnic">⚠️</div>
+    <h2 style="margin:6px 0 6px">Azzerare le statistiche?</h2>
+    <p class="hint" style="margin:0 0 6px">Partite, vittorie, centri, distanza media, anima gemella, indizio migliore e livello ripartono da zero.</p>
+    <p class="hint" style="margin:0 0 16px"><b style="color:var(--text)">Non si può annullare.</b> Amici e nome utente restano.</p>
+    <button type="button" class="btn big dangerfill" id="rsgo">Sì, azzera tutto</button>
+    <button type="button" class="btn ghost big close" style="margin-top:10px">Annulla</button></div>`;
+  const close=()=>{m.classList.add('closing');setTimeout(()=>m.remove(),200)};
+  m.addEventListener('click',e=>{if(e.target===m||e.target.closest('.close'))close()});
+  m.querySelector('#rsgo').onclick=async e=>{
+    const b=e.currentTarget;b.disabled=true;b.textContent='Azzero…';
+    const now=new Date().toISOString();
+    const [a,g,p]=await Promise.all([
+      sbc.from('sintonia_results').delete().eq('user_id',profile.id),
+      sbc.from('sintonia_guesses').delete().eq('user_id',profile.id),
+      sbc.from('profiles').update({stats_reset_at:now}).eq('id',profile.id).select().single()
+    ]);
+    if(p.error||a.error||g.error){b.disabled=false;b.textContent='Sì, azzera tutto';toast('Non sono riuscito ad azzerare, riprova');return}
+    profile=p.data;statsCache=null;close();buzz(30);toast('Statistiche azzerate');
+    await loadStats();if(view==='stats'||view==='home')refresh();
+  };
+  document.body.appendChild(m);
+}
+
 // ===== Statistiche =====
+const since=q=>profile&&profile.stats_reset_at?q.gte('created_at',profile.stats_reset_at):q;
 async function loadStats(){
   if(!profile)return;
   const uid=profile.id;
   const [r,g,c]=await Promise.all([
-    sbc.from('sintonia_results').select('*').eq('user_id',uid).order('created_at',{ascending:false}).limit(500),
-    sbc.from('sintonia_guesses').select('psychic_id,distance,points').eq('user_id',uid).limit(5000),
-    sbc.from('sintonia_guesses').select('clue,card,points').eq('psychic_id',uid).limit(5000)
+    since(sbc.from('sintonia_results').select('*').eq('user_id',uid)).order('created_at',{ascending:false}).limit(500),
+    since(sbc.from('sintonia_guesses').select('psychic_id,distance,points').eq('user_id',uid)).limit(5000),
+    since(sbc.from('sintonia_guesses').select('clue,card,points').eq('psychic_id',uid)).limit(5000)
   ]);
   const res=r.data||[],gs=g.data||[],cl=c.data||[];
   const xp=res.reduce((s,x)=>s+x.score*10+25,0);
@@ -525,9 +555,12 @@ async function scanQR(){
 }
 
 // ===== Versione e patch notes =====
-const VERSION='1.1';
+const VERSION='1.2';
 // tipi di voce: n = nuovo, m = migliorato, c = corretto
 const NOTES=[
+  {v:'1.2',d:'2 novembre 2026',items:[
+    ['n','Puoi azzerare le tue statistiche dal profilo']
+  ]},
   {v:'1.1',d:'2 novembre 2026',items:[
     ['c','Bug fixes']
   ]},
