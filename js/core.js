@@ -19,6 +19,9 @@ const buzz=ms=>{try{navigator.vibrate&&navigator.vibrate(ms)}catch(e){}};
 const reduced=()=>{try{return matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){return false}};
 const inviteLink=()=>location.origin+location.pathname+'?r='+code;
 const av=(p,cls='')=>`<span class="av ${cls}" style="--c:${p&&p.color||'#fff'}">${esc(((p&&(p.name||p.username))||'?').replace(/^anon_/,'')[0]?.toUpperCase()||'?')}</span>`;
+let devIds=new Set();
+const VBADGE='<svg class="vbadge" viewBox="0 0 24 24" role="img" aria-label="Sviluppatore verificato"><path fill="#4dd6ff" d="M12 1.5l2.6 1.9 3.2-.2 1 3.1 2.6 1.9-1 3.1 1 3.1-2.6 1.9-1 3.1-3.2-.2L12 22.5l-2.6-1.9-3.2.2-1-3.1-2.6-1.9 1-3.1-1-3.1 2.6-1.9 1-3.1 3.2.2z"/><path d="M7.6 12.3l3 3 5.8-6" fill="none" stroke="#120f1f" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const nm=p=>{const n=(p&&(p.name||p.username))||'?';const id=p&&(p.uid||p.id);return esc(n)+(id&&devIds.has(id)?VBADGE:'')};
 const COLORS=['#ff5c8a','#4dd6ff','#ffd23f','#7cff6b','#b18cff','#ff9f43','#2ee6c5','#ff6bd6','#9ad1ff','#e8e8e8','#ff4f4f','#c6ff4d'];
 
 // stelline nello sfondo

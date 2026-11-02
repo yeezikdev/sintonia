@@ -194,7 +194,7 @@ const VIEWS={
       <div class="row"><button class="btn ghost" data-a="reroll">🔄 Cambia carta</button><button class="btn primary" data-a="clue">Invia indizio</button></div>
       <div id="hostbar"></div>`;
     return`
-      <div class="role">${esc(nameOf(S.psychicId))} è il Sensitivo</div>
+      <div class="role">${nm(playerOf(S.psychicId))} è il Sensitivo</div>
       <div class="orb"><div class="ring"></div><div class="ring r2"></div><span>🔮</span></div>
       <p class="hint">Sta guardando il bersaglio e pensando all'indizio…</p>
       ${dial({cover:'closed'})}
@@ -203,7 +203,7 @@ const VIEWS={
   },
   guess:()=>{
     const S=state,psy=S.psychicId===me.id,mine=S.guesses[me.id];
-    const cb=`<div class="cluebox"><div class="lbl">${psy?'Il tuo indizio':'Indizio di '+esc(nameOf(S.psychicId))}</div><div class="clue">“${esc(S.clue)}”</div></div>`;
+    const cb=`<div class="cluebox"><div class="lbl">${psy?'Il tuo indizio':'Indizio di '+nm(playerOf(S.psychicId))}</div><div class="clue">“${esc(S.clue)}”</div></div>`;
     if(psy)return`${cb}<div style="text-align:center"><span class="livelab">IN DIRETTA</span></div>${dial({zones:true,target:S.target,live:S.players.filter(p=>p.id!==S.psychicId)})}<div id="ends"></div><p class="hint">Guarda le lancette degli altri muoversi in tempo reale: sono sfumate finché non confermano. Niente suggerimenti! 🤐</p><div id="status"></div><div id="hostbar"></div>`;
     const col=playerOf(me.id).color;
     if(mine!=null)return`${cb}${dial({cover:'closed',needle:mine,color:col})}<div id="ends"></div><p class="okmsg">Risposta inviata ✓</p><button class="btn ghost big" data-a="unguess">Cambia risposta</button><div id="status"></div><div id="hostbar"></div>`;
@@ -213,23 +213,23 @@ const VIEWS={
   },
   reveal:()=>{
     const S=state;
-    const gs=Object.entries(S.guesses).map(([id,v])=>{const p=playerOf(id);return{id,v,name:p.name,color:p.color||'#fff'}});
+    const gs=Object.entries(S.guesses).map(([id,v])=>{const p=playerOf(id);return{id,v,name:p.name,uid:p.uid,color:p.color||'#fff'}});
     const sorted=[...gs].sort((a,b)=>(S.pts[b.id]||0)-(S.pts[a.id]||0)||Math.abs(a.v-S.target)-Math.abs(b.v-S.target));
     const bulls=sorted.filter(g=>S.pts[g.id]===4).map(g=>esc(g.name));
-    const rows=sorted.map((g,i)=>`<div class="ri anim ${S.pts[g.id]?'':'zero'} ${S.pts[g.id]===4?'top':''}" style="animation-delay:${(1.7+i*.12).toFixed(2)}s">${av(g)}<div>${esc(g.name)}<br><span class="m">${Math.abs(g.v-S.target)} di distanza</span></div><b class="pts">+${S.pts[g.id]||0}</b></div>`).join('');
+    const rows=sorted.map((g,i)=>`<div class="ri anim ${S.pts[g.id]?'':'zero'} ${S.pts[g.id]===4?'top':''}" style="animation-delay:${(1.7+i*.12).toFixed(2)}s">${av(g)}<div>${nm(g)}<br><span class="m">${Math.abs(g.v-S.target)} di distanza</span></div><b class="pts">+${S.pts[g.id]||0}</b></div>`).join('');
     const pp=playerOf(S.psychicId),last=S.round+1>=S.total,dl=(1.7+sorted.length*.12).toFixed(2);
-    return`<div class="cluebox"><div class="lbl">Indizio di ${esc(pp.name)}</div><div class="clue">“${esc(S.clue)}”</div></div>
+    return`<div class="cluebox"><div class="lbl">Indizio di ${nm(pp)}</div><div class="clue">“${esc(S.clue)}”</div></div>
       ${dial({zones:true,target:S.target,guesses:gs,cover:'opening'})}
       <div id="ends"></div>
       ${bulls.length?`<div class="bull">🎯 Centro${bulls.length>1?'':' di '+bulls[0]}!</div>`:''}
-      <div class="res">${rows||'<p class="hint">Nessuno ha risposto.</p>'}<div class="ri anim psyrow" style="animation-delay:${dl}s">${av(pp)}<div>${esc(pp.name)}<br><span class="m">Sensitivo · media del gruppo</span></div><b class="pts">+${S.pts[S.psychicId]||0}</b></div></div>
+      <div class="res">${rows||'<p class="hint">Nessuno ha risposto.</p>'}<div class="ri anim psyrow" style="animation-delay:${dl}s">${av(pp)}<div>${nm(pp)}<br><span class="m">Sensitivo · media del gruppo</span></div><b class="pts">+${S.pts[S.psychicId]||0}</b></div></div>
       ${isHost?`<button class="btn primary big" data-a="next">${last?'Vedi la classifica 🏆':'Prossimo round →'}</button>`:`<p class="wait">In attesa dell'host…</p>`}`;
   },
   end:()=>{
     const S=state,sorted=[...S.players].sort((a,b)=>b.score-a.score);
     const top=[sorted[1],sorted[0],sorted[2]],cls=['p2','p1','p3'],delay=[.9,1.4,.5],medal=['🥈','🥇','🥉'];
-    const pod=top.map((p,i)=>p?`<div class="pod ${cls[i]}" style="--d:${delay[i]}s">${i===1?'<div class="crown">👑</div>':''}${av(p,'lg')}<div class="nm">${esc(p.name)}</div><div class="col"><small>${medal[i]}</small>${p.score}</div></div>`:'').join('');
-    const rest=sorted.slice(3).map((p,i)=>`<div class="ri" style="animation-delay:${(1.8+i*.1).toFixed(2)}s"><span class="pos">${i+4}</span>${av(p)}${esc(p.name)}<b>${p.score}</b></div>`).join('');
+    const pod=top.map((p,i)=>p?`<div class="pod ${cls[i]}" style="--d:${delay[i]}s">${i===1?'<div class="crown">👑</div>':''}${av(p,'lg')}<div class="nm">${nm(p)}</div><div class="col"><small>${medal[i]}</small>${p.score}</div></div>`:'').join('');
+    const rest=sorted.slice(3).map((p,i)=>`<div class="ri" style="animation-delay:${(1.8+i*.1).toFixed(2)}s"><span class="pos">${i+4}</span>${av(p)}${nm(p)}<b>${p.score}</b></div>`).join('');
     return`<h2>Classifica finale</h2><p class="hint">Chi è più in sintonia con il gruppo?</p><div class="podium">${pod}</div>${rest?`<div class="res rest">${rest}</div>`:''}
       ${isHost?`<button class="btn primary big" data-a="again">Nuova partita</button>`:`<p class="wait">L'host può avviare una nuova partita.</p>`}`;
   }
@@ -242,7 +242,7 @@ function renderTop(){
   prevScores=Object.fromEntries(S.players.map(p=>[p.id,p.score]));
   const pct=S.total?Math.min(100,(S.round+1)/S.total*100):0;
   $('#top').innerHTML=`<div class="bar"><button class="codechip" data-a="copy">🔗 ${esc(code)}</button>${inGame&&S.phase!=='end'?`<span class="rnd">Round ${Math.min(S.round+1,S.total)}/${S.total}<span class="prog"><span style="width:${pct}%"></span></span></span>`:''}<button class="exit" data-a="exit">Esci</button></div>
-  ${inGame?`<div class="scores">${sorted.map(p=>`<span class="sc ${online.has(p.id)?'':'off'} ${p.id===S.psychicId&&S.phase!=='end'?'psy':''} ${bumpSet.has(p.id)?'bump':''}">${av(p,'sm')}${esc(p.name)} <b>${p.score}</b></span>`).join('')}</div>`:''}`;
+  ${inGame?`<div class="scores">${sorted.map(p=>`<span class="sc ${online.has(p.id)?'':'off'} ${p.id===S.psychicId&&S.phase!=='end'?'psy':''} ${bumpSet.has(p.id)?'bump':''}">${av(p,'sm')}${nm(p)} <b>${p.score}</b></span>`).join('')}</div>`:''}`;
 }
 function render(){
   if(!state||!code)return;
@@ -269,10 +269,10 @@ function render(){
 function updateDyn(){
   const S=state;
   const ends=$('#ends');if(ends&&S.card){const k=S.card.join('|');ends.innerHTML=`<span>${esc(S.card[0])}</span><span>${esc(S.card[1])}</span>`;if(lastCard&&lastCard!==k){ends.classList.remove('swap');void ends.offsetWidth;ends.classList.add('swap')}lastCard=k}
-  const pl=$('#plist');if(pl){pl.innerHTML=S.players.map(p=>{const isNew=!seenPlayers.has(p.id);return`<div class="pl ${online.has(p.id)?'':'off'} ${isNew?'new':''}">${av(p)}<span>${esc(p.name)}</span>${p.id===S.hostId?'<em>host</em>':''}${p.id===me.id?'<em>tu</em>':''}${isHost&&!online.has(p.id)&&p.id!==S.hostId?`<button class="x" data-a="kick" data-id="${p.id}">rimuovi</button>`:''}</div>`}).join('');S.players.forEach(p=>seenPlayers.add(p.id))}
+  const pl=$('#plist');if(pl){pl.innerHTML=S.players.map(p=>{const isNew=!seenPlayers.has(p.id);return`<div class="pl ${online.has(p.id)?'':'off'} ${isNew?'new':''}">${av(p)}<span>${nm(p)}</span>${p.id===S.hostId?'<em>host</em>':''}${p.id===me.id?'<em>tu</em>':''}${isHost&&!online.has(p.id)&&p.id!==S.hostId?`<button class="x" data-a="kick" data-id="${p.id}">rimuovi</button>`:''}</div>`}).join('');S.players.forEach(p=>seenPlayers.add(p.id))}
   const lp=$('#laps');if(lp)lp.innerHTML=[1,2,3].map(v=>`<button data-a="laps" data-v="${v}" class="${S.laps===v?'on':''}">${v}×</button>`).join('');
   const startB=$('#startBtn');if(startB){const few=S.players.length<2;startB.disabled=few;startB.textContent=few?'Servono almeno 2 giocatori':`Inizia la partita (${S.players.length} giocatori)`}
-  const st=$('#status');if(st){const gs=S.players.filter(p=>p.id!==S.psychicId);st.innerHTML=`<div class="chips">${gs.map(p=>{const d=S.guesses[p.id]!=null;return`<span class="chip ${d?'done':''} ${online.has(p.id)?'':'off'}">${av(p,'sm')}${esc(p.name)} <span class="st">${d?'✅':'⏳'}</span></span>`}).join('')}</div>`}
+  const st=$('#status');if(st){const gs=S.players.filter(p=>p.id!==S.psychicId);st.innerHTML=`<div class="chips">${gs.map(p=>{const d=S.guesses[p.id]!=null;return`<span class="chip ${d?'done':''} ${online.has(p.id)?'':'off'}">${av(p,'sm')}${nm(p)} <span class="st">${d?'✅':'⏳'}</span></span>`}).join('')}</div>`}
   paintLive();
   if(window.renderInviteFriends)renderInviteFriends();
   const hb=$('#hostbar');if(hb)hb.innerHTML=isHost?`${S.phase==='guess'&&Object.keys(S.guesses).length?'<button class="btn ghost sm" data-a="reveal">Rivela ora</button>':''}<button class="btn ghost sm" data-a="skip">Salta round</button>`:'';

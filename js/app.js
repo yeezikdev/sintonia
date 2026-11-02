@@ -89,10 +89,10 @@ const SCREENS={
     ${changing?'':`<button type="button" class="linkbtn" data-go="logout">Non sei tu? Esci dall'account</button>`}`},
 
   home:()=>{const st=statsCache;const L=st?level(st.xp):null;
-    const invs=invites.slice(0,2).map(i=>{const p=profCache[i.from_id]||{username:'un amico',color:'#4dd6ff'};return`<div class="invite-banner">${av(p)}<div><b>${esc(p.username)} ti ha invitato</b><small>Stanza ${esc(i.room_code)} · ${ago(i.created_at)}</small></div><button type="button" class="btn sm primary" data-go="accept-invite" data-id="${i.id}">Entra</button></div>`}).join('');
+    const invs=invites.slice(0,2).map(i=>{const p=profCache[i.from_id]||{username:'un amico',color:'#4dd6ff'};return`<div class="invite-banner">${av(p)}<div><b>${nm(p)} ti ha invitato</b><small>Stanza ${esc(i.room_code)} · ${ago(i.created_at)}</small></div><button type="button" class="btn sm primary" data-go="accept-invite" data-id="${i.id}">Entra</button></div>`}).join('');
     const on=friends.accepted.filter(f=>isFriendOnline(f.id));
     return`
-    <div class="hello">${av({name:profile.username,color:profile.color},'lg')}<div><b>Ciao, ${esc(profile.username)}</b><small>${L?`Livello ${L.lv} · ${L.cur}/500 XP`:'Benvenuto su Sintonia'}</small></div>
+    <div class="hello">${av({name:profile.username,color:profile.color},'lg')}<div><b>Ciao, ${nm(profile)}</b><small>${L?`Livello ${L.lv} · ${L.cur}/500 XP`:'Benvenuto su Sintonia'}</small></div>
       <button type="button" class="iconbtn" data-go="amici" aria-label="Richieste di amicizia">${ICON.bell}${friends.incoming.length?'<span class="dotb"></span>':''}</button></div>
     ${homeErr?`<div class="err">${esc(homeErr)}</div>`:''}
     ${invs}
@@ -100,7 +100,7 @@ const SCREENS={
     ${playCards("Sei l'host: scegli le regole e invita gli amici",'Con un codice, un QR o un invito')}
     ${resumeBtn()}
     <div class="sechead"><h3>Amici online · ${on.length}</h3><button type="button" class="linkbtn" data-go="amici">Vedi tutti</button></div>
-    <div class="fstrip">${on.map(f=>{const o=onlineMap[f.id]||{};return`<button type="button" class="fbub" data-go="${o.room?'join-friend':'challenge'}" data-id="${f.id}">${av({name:f.username,color:f.color},'lg')}<i class="${o.room?'busy':''}"></i><span>${esc(f.username)}</span></button>`}).join('')}
+    <div class="fstrip">${on.map(f=>{const o=onlineMap[f.id]||{};return`<button type="button" class="fbub" data-go="${o.room?'join-friend':'challenge'}" data-id="${f.id}">${av({name:f.username,color:f.color},'lg')}<i class="${o.room?'busy':''}"></i><span>${nm(f)}</span></button>`}).join('')}
       <button type="button" class="fbub add" data-go="amici"><span class="av lg dashed">${ICON.plus}</span><span>Aggiungi</span></button></div>
     ${rules}`},
 
@@ -111,11 +111,11 @@ const SCREENS={
       <button type="button" class="btn primary big" data-go="join-code">Entra</button></div>
     <div class="or">oppure</div>
     <button type="button" class="btn big" data-go="scan"><span class="gold">${ICON.qr}</span>Scansiona il QR</button>
-    ${invs.length?`<h3>Inviti ricevuti · ${invs.length}</h3><div class="flist">${invs.map(i=>{const p=profCache[i.from_id]||{username:'?',color:'#fff'};return`<div class="frow">${av(p)}<div class="fi"><b>${esc(p.username)}</b><small>Stanza ${esc(i.room_code)} · ${ago(i.created_at)}</small></div><button type="button" class="btn sm primary" data-go="accept-invite" data-id="${i.id}">Entra</button></div>`}).join('')}</div>`:''}
+    ${invs.length?`<h3>Inviti ricevuti · ${invs.length}</h3><div class="flist">${invs.map(i=>{const p=profCache[i.from_id]||{username:'?',color:'#fff'};return`<div class="frow">${av(p)}<div class="fi"><b>${nm(p)}</b><small>Stanza ${esc(i.room_code)} · ${ago(i.created_at)}</small></div><button type="button" class="btn sm primary" data-go="accept-invite" data-id="${i.id}">Entra</button></div>`}).join('')}</div>`:''}
     <p class="hint" style="margin-top:22px">Chi entra a partita iniziata gioca dal round successivo</p>`},
 
   amici:()=>{
-    const row=(f,right,sub,cls='')=>`<div class="frow ${cls}">${av({name:f.username,color:f.color})}${isFriendOnline(f.id)?`<i class="ondot ${onlineMap[f.id].room?'busy':''}"></i>`:''}<div class="fi"><b>${esc(f.username)}</b><small>${sub}</small></div>${right}</div>`;
+    const row=(f,right,sub,cls='')=>`<div class="frow ${cls}">${av({name:f.username,color:f.color})}${isFriendOnline(f.id)?`<i class="ondot ${onlineMap[f.id].room?'busy':''}"></i>`:''}<div class="fi"><b>${nm(f)}</b><small>${sub}</small></div>${right}</div>`;
     const on=friends.accepted.filter(f=>isFriendOnline(f.id)),off=friends.accepted.filter(f=>!isFriendOnline(f.id));
     return`
     <div class="topline"><h2 class="ttl big">Amici</h2><span></span></div>
@@ -132,7 +132,7 @@ const SCREENS={
     if(!st)return`<div class="center"><div class="spin"></div>Carico le statistiche…</div>`;
     const L=level(st.xp);
     return`
-    <div class="phead">${av({name:profile.username,color:profile.color},'xl')}<div class="pinfo"><b>${esc(profile.username)}</b><div class="lvrow"><span class="lv">LV ${L.lv}</span><span class="lvbar"><span style="width:${L.cur/5}%"></span></span></div><small>${L.cur} / 500 XP al livello ${L.lv+1}</small></div></div>
+    <div class="phead">${av({name:profile.username,color:profile.color},'xl')}<div class="pinfo"><b>${nm(profile)}</b><div class="lvrow"><span class="lv">LV ${L.lv}</span><span class="lvbar"><span style="width:${L.cur/5}%"></span></span></div><small>${L.cur} / 500 XP al livello ${L.lv+1}</small></div></div>
     <div class="sgrid"><div class="scard"><small>Partite</small><b>${st.matches}</b></div><div class="scard"><small>Vittorie</small><b class="y">${st.wins}</b></div><div class="scard"><small>Centri pieni</small><b class="p">${st.bulls}</b></div><div class="scard"><small>Distanza media</small><b class="c">${st.avgDist==null?'–':st.avgDist}</b></div></div>
     ${st.soul?`<div class="soul"><div class="ring"><svg width="66" height="66" viewBox="0 0 66 66" aria-hidden="true"><circle cx="33" cy="33" r="28" fill="none" stroke="#262044" stroke-width="7"/><circle cx="33" cy="33" r="28" fill="none" stroke="#4dd6ff" stroke-width="7" stroke-linecap="round" stroke-dasharray="${(st.soul.pct*1.76).toFixed(0)} 176" transform="rotate(-90 33 33)"/></svg><b>${st.soul.pct}%</b></div><div><small class="cy">Anima gemella</small><b>${esc(st.soul.name)}</b><span>Capisci i suoi indizi meglio di tutti</span></div></div>`:''}
     ${st.best?`<div class="bestclue"><small>Il tuo indizio migliore</small><b>“${esc(st.best.clue)}”</b><span>${esc(st.best.card)} · ${st.best.bulls} centri su ${st.best.n}</span></div>`:''}
@@ -361,7 +361,7 @@ async function searchFriends(keep){
   const {data}=await sbc.from('profiles').select('id,username,color').ilike('username',q.replace(/[_%]/g,m=>'\\'+m)+'%').neq('id',profile.id).order('username').limit(8);
   (data||[]).forEach(p=>profCache[p.id]=p);
   const st=p=>friends.accepted.some(f=>f.id===p.id)?'<span class="tag ok">Amici</span>':friends.outgoing.some(f=>f.id===p.id)?'<span class="tag">Richiesta inviata</span>':friends.incoming.some(f=>f.id===p.id)?`<button type="button" class="btn sm primary" data-go="accept" data-id="${p.id}">Accetta</button>`:`<button type="button" class="btn sm primary" data-go="add" data-id="${p.id}">Aggiungi</button>`;
-  box.innerHTML=(data&&data.length)?`<div class="flist" style="margin-top:10px">${data.map(p=>`<div class="frow">${av({name:p.username,color:p.color})}<div class="fi"><b>${esc(p.username)}</b><small>${isFriendOnline(p.id)?'Online':'Giocatore'}</small></div>${st(p)}</div>`).join('')}</div>`:`<p class="empty">Nessun giocatore trovato con “${esc(q)}”</p>`;
+  box.innerHTML=(data&&data.length)?`<div class="flist" style="margin-top:10px">${data.map(p=>`<div class="frow">${av({name:p.username,color:p.color})}<div class="fi"><b>${nm(p)}</b><small>${isFriendOnline(p.id)?'Online':'Giocatore'}</small></div>${st(p)}</div>`).join('')}</div>`:`<p class="empty">Nessun giocatore trovato con “${esc(q)}”</p>`;
 }
 async function addFriend(id,el){
   if(el)el.disabled=true;
@@ -386,7 +386,7 @@ function renderInviteFriends(){
   box.innerHTML=`<h3>Invita dagli amici</h3><div class="flist">${list.map(f=>{const on=isFriendOnline(f.id),o=onlineMap[f.id]||{};
     const right=inRoom.has(f.id)?`<span class="tag ok">${ICON.check}Entrato</span>`:invitedHere.has(f.id)?'<span class="tag gold">Invito inviato</span>':`<button type="button" class="btn sm ${on?'primary':'outline'}" data-go="invite" data-id="${f.id}">Invita</button>`;
     const sub=inRoom.has(f.id)?'Nella stanza':on?(o.room?`In un'altra stanza · ${esc(o.room)}`:'Online'):'Offline · riceverà l’invito';
-    return`<div class="frow ${on?'':'dim1'}">${av({name:f.username,color:f.color})}${on?'<i class="ondot"></i>':''}<div class="fi"><b>${esc(f.username)}</b><small>${sub}</small></div>${right}</div>`}).join('')}</div>`;
+    return`<div class="frow ${on?'':'dim1'}">${av({name:f.username,color:f.color})}${on?'<i class="ondot"></i>':''}<div class="fi"><b>${nm(f)}</b><small>${sub}</small></div>${right}</div>`}).join('')}</div>`;
 }
 
 // ===== Tempo reale: amici online, inviti, richieste =====
@@ -484,6 +484,9 @@ function openNotes(){
 }
 $('#verBtn').addEventListener('click',openNotes);
 
+// ===== Spunta verificata =====
+async function loadBadges(){try{const {data}=await sbc.rpc('player_badges');devIds=new Set((data||[]).filter(x=>x.badge==='dev').map(x=>x.id));if(code)render();else refresh()}catch(e){}}
+
 // ===== Avvio =====
 (async function boot(){
   renderVer();
@@ -491,6 +494,7 @@ $('#verBtn').addEventListener('click',openNotes);
   const r=(qp.get('r')||'').toUpperCase().replace(/[^A-Z]/g,'');
   if(r.length===4)pendingRoom=r;
   const oerr=hp.get('error_description')||qp.get('error_description');
+  if(sbc)loadBadges();
   if(!sbc){show('welcome','Libreria di connessione non caricata. Controlla la connessione internet e ricarica la pagina.');return}
   $('#app').innerHTML=`<div class="center"><div class="spin"></div>Avvio…</div>`;
   let s=null;try{const {data}=await sbc.auth.getSession();s=data.session}catch(e){}
