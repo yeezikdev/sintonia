@@ -529,10 +529,7 @@ const VERSION='1.1';
 // tipi di voce: n = nuovo, m = migliorato, c = corretto
 const NOTES=[
   {v:'1.1',d:'2 novembre 2026',items:[
-    ['n','Apri il link di una stanza, scegli il nome ed entri subito in partita'],
-    ['m','Un solo telefono: si parte con il tuo nome e aggiungi gli altri uno alla volta'],
-    ['n','Puoi togliere i nomi dalla lista "Hanno già giocato"'],
-    ['c','Il lettore QR ora funziona anche su iPhone']
+    ['c','Bug fixes']
   ]},
   {v:'1.0',d:'2 novembre 2026',first:true,items:[]}
 ];
