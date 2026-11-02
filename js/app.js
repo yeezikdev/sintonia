@@ -278,17 +278,7 @@ function openNameSheet(next){
     const ok=await ensureIdentity();b.disabled=false;if(ok){close();buzz(15);next&&next()}};
   document.body.appendChild(m);setTimeout(()=>i.focus(),300);
 }
-function openRules(){
-  const m=document.createElement('div');m.className='modal';
-  m.innerHTML=`<div class="sheet" role="dialog" aria-label="Come si gioca"><div class="grab"></div><h2 style="text-align:left;margin:4px 0 12px">Come si gioca</h2>
-    <div class="rulestep"><span>1</span><p>A turno uno di voi è il <b>Sensitivo</b>: vede dove si trova il bersaglio su una scala tra due estremi, per esempio <b>Freddo ↔ Caldo</b>, e scrive un indizio.</p></div>
-    <div class="rulestep"><span>2</span><p>Gli altri, ognuno dal proprio telefono, spostano la lancetta dove pensano sia il bersaglio.</p></div>
-    <div class="rulestep"><span>3</span><p>Centro pieno <b>4 punti</b>, vicino <b>3</b>, abbastanza vicino <b>2</b>. Il Sensitivo prende la media dei punti degli altri.</p></div>
-    <button class="btn primary big close" type="button" style="margin-top:16px">Ho capito</button></div>`;
-  const close=()=>{m.classList.add('closing');setTimeout(()=>m.remove(),200)};
-  m.addEventListener('click',e=>{if(e.target===m||e.target.closest('.close'))close()});
-  document.body.appendChild(m);
-}
+function openRules(){openNotes('rules')}
 function createRoom(){invitedHere=new Set();state=newState();enterRoom(roomCode(),true)}
 async function joinRoom(c){
   if(!profile&&!me.name){pendingRoom=c;show('welcome');return}
@@ -534,28 +524,43 @@ async function scanQR(){
 }
 
 // ===== Versione e patch notes =====
-const VERSION='2.4';
+const VERSION='1.0';
 const NOTES=[
-  {v:'2.4',d:'2 novembre 2026',t:'Rivincita',l:['A fine partita il tasto Rivincita fa ripartire subito la partita con gli stessi giocatori, senza passare dalla lobby','L\'host la avvia con un tocco; gli altri possono chiederla e si riparte quando sono pronti tutti','Chi ha lasciato la stanza non viene incluso nella rivincita','L\'host può ancora tornare alla lobby per cambiare giocatori o regole','Anche su un solo telefono c\'è la Rivincita']},
-  {v:'2.3',d:'2 novembre 2026',t:'Suoni e risultati da condividere',l:['Effetti sonori: tic della lancetta, rullo di tamburi prima della rivelazione, festa per il centro pieno e fanfara finale','Tasto con l\'altoparlante per accendere o spegnere i suoni','A fine partita "Condividi il risultato" crea un\'immagine in formato storia con podio e indizio della partita','Funziona sia online sia su un solo telefono']},
-  {v:'2.2',d:'2 novembre 2026',t:'Un solo telefono',l:['Nuova modalità per giocare in compagnia passandovi un solo telefono, senza creare stanze','Due modi: "Ognuno per sé" con classifica individuale, oppure "Tutti insieme" con punteggio di squadra','Schermate di passaggio del telefono, così nessuno sbircia il bersaglio o le risposte degli altri','Le partite su un solo telefono non contano nelle statistiche']},
-  {v:'2.1',d:'2 novembre 2026',t:'Home più pulita',l:['Anche la home con account ha il quadrante, i due riquadri affiancati e solo inviti e amici online','Il quadrante animato è il protagonista della home','Solo due riquadri affiancati: Crea una stanza a sinistra, Entra in una stanza a destra','Il nome da ospite si chiede solo quando inizi a giocare, e poi si ricorda','Accesso e regole diventano link discreti in basso','Le regole si aprono in un pannello a passi']},
-  {v:'2.0',d:'2 novembre 2026',t:'Account, amici e statistiche',l:['Si gioca subito come ospite: scrivi un nome e diventi anon_nome','Accesso con email o Google e nome utente unico scelto da te','Home separata tra "Crea una stanza" ed "Entra in una stanza"','Schermata per entrare con il codice o scansionando il QR','Amici: cerca per nome utente, richieste, chi è online e in quale stanza','Invita gli amici nella tua stanza con un tocco, anche se sono offline','Profilo con livello, partite, vittorie, centri, anima gemella e indizio migliore','Le partite giocate con un account vengono salvate automaticamente']},
-  {v:'1.3',d:'2 novembre 2026',t:'Lancette in diretta',l:['Il Sensitivo vede in tempo reale le lancette degli altri mentre le muovono','Le lancette restano sfumate finché il giocatore non conferma, poi diventano piene con un segno verde','Etichetta "In diretta" sul quadrante del Sensitivo']},
-  {v:'1.2',d:'2 novembre 2026',t:'Grafica nuova',l:['Quadrante ridisegnato con cornice luminosa, tacche e lancetta che brilla','Sportello che si apre sul bersaglio al momento della rivelazione','Le lancette di tutti scattano una alla volta verso la risposta','Coriandoli quando qualcuno fa centro e alla fine della partita','Podio finale con colonne che salgono e corona sul vincitore','Sfondo animato, avatar colorati con l\'iniziale e barra dei round','Vibrazione leggera mentre muovi la lancetta','Versione e novità in fondo alla pagina']},
-  {v:'1.1',d:'2 novembre 2026',t:'Connessione più affidabile',l:['Risolto il blocco su "Crea una stanza"','Messaggio chiaro se il server di gioco non risponde','Avviso se il gioco è aperto come file o in anteprima']},
-  {v:'1.0',d:'2 novembre 2026',t:'Prima versione',l:['Stanze con codice di 4 lettere, QR e link d\'invito','Ognuno gioca dal proprio telefono','A turno un Sensitivo, circa 70 carte in italiano','Punti 4/3/2 e classifica finale']}
+  {v:'1.0',d:'2 novembre 2026',t:'Benvenuto',sec:[
+    ['🎯','Il gioco',['A turno un Sensitivo vede il bersaglio e dà un indizio, gli altri girano la lancetta per indovinare','Punti 4 / 3 / 2 in base a quanto vi avvicinate: il Sensitivo prende la media del gruppo','Più di 70 carte in italiano, da "Freddo ↔ Caldo" a "Da aperitivo ↔ Da club alle 4"']],
+    ['📱','Come si gioca',['Online: ognuno dal proprio telefono, con stanze a codice di 4 lettere, QR e link d\'invito','Un solo telefono: ve lo passate a turno, "Ognuno per sé" oppure "Tutti insieme"','Il Sensitivo vede le lancette degli altri muoversi in diretta']],
+    ['👤','Account e amici',['Si gioca subito come ospite, oppure con un account e un nome utente unico','Amici, richieste e inviti nella stanza con un tocco','Profilo con livello, statistiche, anima gemella e indizio migliore']],
+    ['✨','Effetti',['Quadrante animato, sportello che si apre sul bersaglio, coriandoli e podio finale','Suoni ed effetti, con il tasto per spegnerli','Immagine del risultato da condividere nelle storie','Rivincita con un tocco']]
+  ]}
 ];
-function renderVer(){const b=$('#verBtn');if(!b)return;const seen=ls.get('sintonia_ver')===VERSION;b.innerHTML=`Sintonia <b>v${VERSION}</b> · Novità${seen?'':'<span class="dot"></span>'}`}
-function openNotes(){
+const RULES=[
+  ['Lo scopo','Su una scala tra due estremi, per esempio <b>Freddo ↔ Caldo</b>, c\'è un bersaglio nascosto. Dovete capire dove si trova grazie all\'indizio di un amico.'],
+  ['Il Sensitivo','A ogni round uno di voi è il <b>Sensitivo</b>: solo lui vede dove sta il bersaglio. Scrive (o dice) un indizio che faccia capire la posizione, per esempio "Il caffè" se il bersaglio è verso Caldo.'],
+  ['Indovinate','Gli altri girano la lancetta dove pensano sia il bersaglio e confermano. Finché non confermano possono cambiare idea.'],
+  ['I punti','Centro pieno <b>4 punti</b>, vicino <b>3</b>, abbastanza vicino <b>2</b>. Il Sensitivo prende la media dei punti degli altri: conviene dare indizi furbi!'],
+  ['Online','Uno crea la stanza e diventa host. Gli altri entrano con il codice di 4 lettere, il QR o un invito. Ognuno gioca dal proprio telefono.'],
+  ['Un solo telefono','Aggiungete i nomi e passatevi il telefono quando tocca a voi. Con "Ognuno per sé" c\'è una classifica, con "Tutti insieme" decidete la lancetta in gruppo.'],
+  ['Fine partita','Ognuno fa il Sensitivo lo stesso numero di volte. Vince chi ha più punti: poi podio, immagine da condividere e, se volete, rivincita.']
+];
+function renderVer(){const b=$('#verBtn');if(!b)return;const seen=ls.get('sintonia_ver')===VERSION;b.innerHTML=`Sintonia <b>v${VERSION}</b> · Novità e regole${seen?'':'<span class="dot"></span>'}`}
+function openNotes(tab){
+  if(typeof tab!=='string')tab='news';
   ls.set('sintonia_ver',VERSION);renderVer();
   const m=document.createElement('div');m.className='modal';
-  m.innerHTML=`<div class="sheet" role="dialog" aria-label="Novità"><div class="grab"></div><h2>Novità</h2><p class="hint" style="text-align:left;margin:0">Cosa è cambiato in ogni versione</p>${NOTES.map((n,i)=>`<div class="note"><h4>v${n.v} · ${esc(n.t)}${i===0?'<span class="tag">attuale</span>':''}</h4><div class="d">${esc(n.d)}</div><ul>${n.l.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')}<button class="btn ghost close" type="button">Chiudi</button></div>`;
+  const draw=()=>{const n=NOTES[0];
+    m.innerHTML=`<div class="sheet notes" role="dialog" aria-label="Novità e regole"><div class="grab"></div>
+      <div class="seg wide" style="margin-bottom:16px"><button type="button" data-t="news" class="${tab==='news'?'on':''}">Novità</button><button type="button" data-t="rules" class="${tab==='rules'?'on':''}">Come si gioca</button></div>
+      ${tab==='news'?`<div class="vhead"><span class="vbig">Versione ${n.v}</span><h2>${esc(n.t)}</h2><small>${esc(n.d)}</small></div>
+        ${n.sec.map(([ic,t,l])=>`<div class="note"><h4><span class="nic">${ic}</span>${esc(t)}</h4><ul>${l.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')}`
+      :`${RULES.map(([t,d],i)=>`<div class="rulestep"><span>${i+1}</span><p><b>${esc(t)}</b><br>${d}</p></div>`).join('')}`}
+      <button class="btn ghost big close" type="button" style="margin-top:18px">Chiudi</button></div>`;
+    m.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{tab=b.dataset.t;draw();m.querySelector('.sheet').scrollTop=0});
+  };
   const close=()=>{m.classList.add('closing');setTimeout(()=>m.remove(),200)};
   m.addEventListener('click',e=>{if(e.target===m||e.target.closest('.close'))close()});
-  document.body.appendChild(m);
+  draw();document.body.appendChild(m);
 }
-$('#verBtn').addEventListener('click',openNotes);
+$('#verBtn').addEventListener('click',()=>openNotes('news'));
 
 // ===== Nuova password (dal link dell'email) =====
 function openNewPassword(){
