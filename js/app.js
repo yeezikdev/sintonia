@@ -216,7 +216,7 @@ async function go(a,el){
     case 'back':goBack();break;
     case 'create':withName(createRoom);break;
     case 'entra':withName(()=>show('entra'));break;
-    case 'g-join':withName(()=>{const r=pendingRoom;pendingRoom=null;joinRoom(r)});break;
+    case 'g-join':if(profile||me.name){const r=pendingRoom;pendingRoom=null;joinRoom(r)}else openNameSheet(()=>{const r=pendingRoom;pendingRoom=null;if(r)joinRoom(r)},pendingRoom);break;
     case 'gname':openNameSheet(()=>refresh());break;
     case 'rules':openRules();break;
     case 'resume-x':if(confirm('Chiudere questa partita? Non potrai più riprenderla.')){ls.del('sintonia_host');refresh()}break;
@@ -260,14 +260,15 @@ async function ensureIdentity(){
   }catch(e){toast('Non riesco a registrare il nome, controlla la connessione');return false}
 }
 function withName(next){if(profile||me.name)next();else openNameSheet(next)}
-function openNameSheet(next){
+function openNameSheet(next,room){
   const m=document.createElement('div');m.className='modal';
   m.innerHTML=`<div class="sheet" role="dialog" aria-label="Il tuo nome"><div class="grab"></div>
+    ${room?`<div class="invite-banner" style="margin-bottom:14px"><span class="pi sm">${ICON.enter}</span><div><b>Ti hanno invitato nella stanza ${esc(room)}</b><small>Scegli il nome con cui giocare</small></div></div>`:''}
     <h2 style="text-align:left;margin:4px 0 4px">Come ti chiami?</h2>
     <p class="hint" style="text-align:left;margin:0 0 16px">Così ti riconoscono gli amici nella stanza.</p>
     <form id="nform"><input id="gname" maxlength="16" placeholder="Es. pietro" value="${esc(guestSaved.raw||'')}" autocomplete="off" autocapitalize="off" spellcheck="false">
     <p class="preview">Giocherai come <b id="gprev">${esc(guestPreview(guestSaved.raw))}</b></p>
-    <button type="submit" class="btn primary big" id="ngo" style="margin-top:14px">Gioca</button></form>
+    <button type="submit" class="btn primary big" id="ngo" style="margin-top:14px">${room?`Entra nella stanza ${esc(room)}`:'Gioca'}</button></form>
     <p class="hint" style="margin:16px 0 0">Vuoi salvare statistiche e amici? <button type="button" class="linkbtn" id="nlogin">Accedi</button></p></div>`;
   const close=()=>{m.classList.add('closing');setTimeout(()=>m.remove(),200)};
   m.addEventListener('click',e=>{if(e.target===m)close()});
@@ -524,8 +525,12 @@ async function scanQR(){
 }
 
 // ===== Versione e patch notes =====
-const VERSION='1.0';
+const VERSION='1.1';
 const NOTES=[
+  {v:'1.1',d:'2 novembre 2026',t:'Entra al volo',sec:[
+    ['🔗','Link e QR delle stanze',['Aprendo il link di una stanza senza account, il gioco chiede subito come ti vuoi chiamare','Scelto il nome entri direttamente nella partita, senza passare dalla home','Il lettore QR ora funziona anche su iPhone']],
+    ['📱','Un solo telefono',['Si parte solo con il tuo nome: gli altri giocatori si aggiungono uno alla volta','I nomi in "Hanno già giocato" si possono togliere dalla lista']]
+  ]},
   {v:'1.0',d:'2 novembre 2026',t:'Benvenuto',sec:[
     ['🎮','Modalità',['Online, ognuno dal proprio telefono, con stanze a codice di 4 lettere, QR e link d\'invito','Un solo telefono da passarsi a turno, in versione "Ognuno per sé" o "Tutti insieme"','Lancette degli altri visibili in diretta per il Sensitivo','Più di 70 carte in italiano']],
     ['👤','Account e amici',['Si gioca subito come ospite, oppure con un account e un nome utente unico','Amici, richieste e inviti nella stanza con un tocco','Profilo con livello, statistiche, anima gemella e indizio migliore']],
@@ -549,8 +554,8 @@ function openNotes(tab){
   const draw=()=>{const n=NOTES[0];
     m.innerHTML=`<div class="sheet notes" role="dialog" aria-label="Novità e regole"><div class="grab"></div>
       <div class="seg wide" style="margin-bottom:16px"><button type="button" data-t="news" class="${tab==='news'?'on':''}">Novità</button><button type="button" data-t="rules" class="${tab==='rules'?'on':''}">Come si gioca</button></div>
-      ${tab==='news'?`<div class="vhead"><span class="vbig">Versione ${n.v}</span><h2>${esc(n.t)}</h2><small>${esc(n.d)}</small></div>
-        ${n.sec.map(([ic,t,l])=>`<div class="note"><h4><span class="nic">${ic}</span>${esc(t)}</h4><ul>${l.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')}`
+      ${tab==='news'?NOTES.map((n,k)=>`<div class="vhead ${k?'old':''}"><span class="vbig">Versione ${n.v}</span><h2>${esc(n.t)}</h2><small>${esc(n.d)}</small></div>
+        ${n.sec.map(([ic,t,l])=>`<div class="note"><h4><span class="nic">${ic}</span>${esc(t)}</h4><ul>${l.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')}`).join('')
       :`${RULES.map(([t,d],i)=>`<div class="rulestep"><span>${i+1}</span><p><b>${esc(t)}</b><br>${d}</p></div>`).join('')}`}
       <button class="btn ghost big close" type="button" style="margin-top:18px">Chiudi</button></div>`;
     m.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{tab=b.dataset.t;draw();m.querySelector('.sheet').scrollTop=0});
@@ -600,7 +605,7 @@ async function loadBadges(){try{const {data}=await sbc.rpc('player_badges');devI
   if(RECOVERY&&s)recover();
   if(s)await onSession(s);
   else if(pendingRoom&&me.name){const c=pendingRoom;pendingRoom=null;joinRoom(c)}
-  else show('welcome','',{root:true});
+  else{show('welcome','',{root:true});if(pendingRoom)setTimeout(()=>{if(!code&&!profile&&pendingRoom)openNameSheet(()=>{const r=pendingRoom;pendingRoom=null;if(r)joinRoom(r)},pendingRoom)},350)}
   if(oerr)toast(decodeURIComponent(oerr).replace(/\+/g,' '),5000);
   if(location.hash&&/access_token|error/.test(location.hash))setUrl(location.pathname+location.search);
 })();
