@@ -138,7 +138,7 @@ const SCREENS={
     ${st.best?`<div class="bestclue"><small>Il tuo indizio migliore</small><b>“${esc(st.best.clue)}”</b><span>${esc(st.best.card)} · ${st.best.bulls} centri su ${st.best.n}</span></div>`:''}
     <h3>Ultime partite</h3>
     <div class="flist">${st.recent.length?st.recent.map(r=>`<div class="frow"><span class="posb p${Math.min(r.position,4)}">${r.position}°</span><div class="fi"><b>${r.others.length?'Con '+esc(r.others.slice(0,3).join(', '))+(r.others.length>3?' e altri':''):'Partita'}</b><small>${ago(r.created_at)} · ${r.rounds} round</small></div><b class="ptsr">${r.score} pt</b></div>`).join(''):'<p class="empty">Gioca la tua prima partita con un account per vedere qui le statistiche</p>'}</div>
-    <div class="grid2" style="margin-top:22px"><button type="button" class="btn" data-go="rename">Cambia nome</button><button type="button" class="btn ghost" data-go="logout">Esci</button></div>`}
+    ${profile.badge?`<p class="hint" style="margin-top:22px">${VBADGE} Account verificato: il nome utente non si può cambiare</p><button type="button" class="btn ghost big" data-go="logout" style="margin-top:10px">Esci</button>`:`<div class="grid2" style="margin-top:22px"><button type="button" class="btn" data-go="rename">Cambia nome</button><button type="button" class="btn ghost" data-go="logout">Esci</button></div>`}`}
 };
 
 // ===== Collegamenti delle schermate =====
@@ -193,7 +193,7 @@ async function go(a,el){
     case 'login':openLogin();break;
     case 'google':googleLogin();break;
     case 'logout':if(confirm("Uscire dall'account?")){await sbc.auth.signOut();}break;
-    case 'rename':show('username');break;
+    case 'rename':if(profile&&profile.badge){toast('Gli account verificati non possono cambiare nome utente');return}show('username');break;
     case 'usug':{const i=$('#user');i.value=el.dataset.v;i.dispatchEvent(new Event('input'));break}
     case 'usave':saveUsername();break;
     case 'accept-invite':{const inv=invites.find(x=>x.id===id);if(!inv)return;sbc.from('invites').delete().eq('id',id).then(()=>{});invites=invites.filter(x=>x.id!==id);joinRoom(inv.room_code);break}
@@ -306,7 +306,7 @@ async function saveUsername(){
   let res;
   if(profile)res=await sbc.from('profiles').update({username:v}).eq('id',profile.id).select().single();
   else res=await sbc.from('profiles').insert({id:session.user.id,username:v,color:me.color||COLORS[0]}).select().single();
-  if(res.error){const m=res.error.message||'';$('#umsg').className='umsg bad';$('#umsg').textContent=res.error.code==='23505'?`${v} è appena stato preso, scegline un altro`:/30 giorni/.test(m)?'Puoi cambiare il nome utente una volta ogni 30 giorni':'Non riuscito, riprova';btn.disabled=false;return}
+  if(res.error){const m=res.error.message||'';$('#umsg').className='umsg bad';$('#umsg').textContent=res.error.code==='23505'?`${v} è appena stato preso, scegline un altro`:/verificati/.test(m)?'Gli account verificati non possono cambiare nome utente':/30 giorni/.test(m)?'Puoi cambiare il nome utente una volta ogni 30 giorni':'Non riuscito, riprova';btn.disabled=false;return}
   const first=!profile;profile=res.data;setAccountMe();
   if(first){startUserRealtime();confetti(80);toast(`Benvenuto, ${profile.username}!`)}else toast('Nome utente aggiornato');
   if(pendingRoom){const r=pendingRoom;pendingRoom=null;joinRoom(r)}else show('home');
