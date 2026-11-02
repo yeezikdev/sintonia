@@ -1,16 +1,33 @@
 // ===== Sintonia · suoni ed effetti (sintetizzati, nessun file audio) =====
 const SFX=(()=>{
-  let ctx=null,master=null,on=ls.get('sintonia_sound')!==false,lastTick=0;
+  let ctx=null,master=null,on=ls.get('sintonia_sound')!==false,lastTick=0,keepAlive=null,unlocked=false;
+  // iPhone: la sessione audio "playback" fa suonare anche con l'interruttore del silenzioso
+  const setSession=()=>{try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}};
+  // file audio muto in loop: su iPhone vecchi tiene la sessione in modalità "riproduzione"
+  const silentUrl=()=>{const sr=8000,n=sr/2,b=new ArrayBuffer(44+n),v=new DataView(b);const w=(o,t)=>{for(let i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i))};
+    w(0,'RIFF');v.setUint32(4,36+n,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,sr,true);v.setUint32(28,sr,true);v.setUint16(32,1,true);v.setUint16(34,8,true);w(36,'data');v.setUint32(40,n,true);for(let i=0;i<n;i++)v.setUint8(44+i,128);
+    return URL.createObjectURL(new Blob([b],{type:'audio/wav'}))};
+  const startKeepAlive=()=>{try{if(!keepAlive){keepAlive=new Audio(silentUrl());keepAlive.loop=true;keepAlive.setAttribute('playsinline','');keepAlive.preload='auto'}if(keepAlive.paused){const pr=keepAlive.play();if(pr&&pr.catch)pr.catch(()=>{})}}catch(e){}};
+  const stopKeepAlive=()=>{try{keepAlive&&keepAlive.pause()}catch(e){}};
+  const create=()=>{if(ctx)return ctx;const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;try{ctx=new C({latencyHint:'interactive'})}catch(e){ctx=new C()}master=ctx.createGain();master.gain.value=.6;master.connect(ctx.destination);return ctx};
+  // sblocco: va fatto dentro un tocco dell'utente
+  const unlock=()=>{
+    if(!on)return;
+    setSession();
+    const c=create();if(!c)return;
+    if(c.state!=='running'){try{c.resume()}catch(e){}}
+    try{const buf=c.createBuffer(1,1,22050),src=c.createBufferSource();src.buffer=buf;src.connect(c.destination);src.start(0)}catch(e){}
+    startKeepAlive();
+    unlocked=c.state==='running'||unlocked;
+  };
+  ['touchend','pointerup','click','keydown'].forEach(ev=>window.addEventListener(ev,()=>{if(!ctx||ctx.state!=='running'||(keepAlive&&keepAlive.paused))unlock()},{passive:true,capture:true}));
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')stopKeepAlive();else if(ctx&&ctx.state!=='running'){try{ctx.resume()}catch(e){}}});
   const ensure=()=>{
     if(!on)return null;
-    try{
-      if(!ctx){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;ctx=new C();master=ctx.createGain();master.gain.value=.55;master.connect(ctx.destination)}
-      if(ctx.state==='suspended')ctx.resume();
-      return ctx;
-    }catch(e){return null}
+    const c=create();if(!c)return null;
+    if(c.state!=='running'){try{c.resume()}catch(e){}}
+    return c;
   };
-  // sblocco audio su iPhone al primo tocco
-  ['pointerdown','touchstart','keydown'].forEach(ev=>window.addEventListener(ev,()=>{ensure()},{once:true,passive:true}));
   const tone=(freq,{t=0,dur=.12,type='sine',vol=.3,slide=0,attack=.005}={})=>{
     const c=ensure();if(!c)return;const s=c.currentTime+t;
     const o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(freq,s);
@@ -29,7 +46,7 @@ const SFX=(()=>{
   const notes=[523.25,659.25,783.99,1046.5,1318.5];
   return{
     get on(){return on},
-    toggle(){on=!on;ls.set('sintonia_sound',on);if(on){ensure();this.pop()}return on},
+    toggle(){on=!on;ls.set('sintonia_sound',on);if(on){unlock();this.pop()}else stopKeepAlive();return on},
     tick(){const now=performance.now();if(now-lastTick<28)return;lastTick=now;tone(2400,{dur:.025,type:'square',vol:.05})},
     tap(){tone(660,{dur:.06,type:'triangle',vol:.12})},
     pop(){tone(520,{dur:.12,type:'sine',vol:.28,slide:1.9})},
