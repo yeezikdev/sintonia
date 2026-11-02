@@ -20,13 +20,13 @@ SCREENS.localsetup=()=>{
   <div class="topline"><button type="button" class="iconbtn" data-go="back" aria-label="Indietro">${ICON.back}</button><b class="ttl">Un solo telefono</b><span style="width:44px"></span></div>
   <p class="sub tc">Giocate tutti con questo telefono: ve lo passate a turno quando tocca a voi.</p>
   <h3>Giocatori</h3>
-  <div class="flist" id="lnames">${S.names.map((v,i)=>{const mine=i===0&&profile;return`<div class="frow lname">${av({name:v||String(i+1),color:COLORS[i%COLORS.length]})}${mine?`<div class="fi"><b>${nm(profile)}</b><small>Sei tu · la partita va nelle tue statistiche</small></div>`:`<input class="lnin" data-i="${i}" maxlength="14" placeholder="${i===0?'Il tuo nome':'Giocatore '+(i+1)}" value="${esc(v)}" autocomplete="off" aria-label="Nome giocatore ${i+1}">`}${n>2&&!mine?`<button type="button" class="iconbtn sm" data-go="l-del" data-i="${i}" aria-label="Togli giocatore">${ICON.x}</button>`:''}</div>`}).join('')}</div>
+  <div class="flist" id="lnames">${S.names.map((v,i)=>{const mine=i===0&&profile;return`<div class="frow lname">${av({name:v||String(i+1),color:COLORS[i%COLORS.length]})}${mine?`<div class="fi"><b>${nm(profile)}</b><small>Sei tu</small></div>`:`<input class="lnin" data-i="${i}" maxlength="14" placeholder="${i===0?'Il tuo nome':'Giocatore '+(i+1)}" value="${esc(v)}" autocomplete="off" aria-label="Nome giocatore ${i+1}">`}${n>2&&!mine?`<button type="button" class="iconbtn sm" data-go="l-del" data-i="${i}" aria-label="Togli giocatore">${ICON.x}</button>`:''}</div>`}).join('')}</div>
   ${n<12?`<button type="button" class="btn ghost big addp" data-go="l-add">${ICON.plus}Aggiungi giocatore</button>`:''}
   <h3>Modalità</h3>
   <div class="modes">${Object.entries(LMODES).map(([k,m])=>`<button type="button" class="mode ${S.mode===k?'on':''}" data-go="l-mode" data-m="${k}"><b>${m.t}</b><small>${m.d}</small></button>`).join('')}</div>
   <div class="setting"><span>Volte che ognuno fa il Sensitivo</span><div class="seg">${[1,2,3].map(v=>`<button type="button" data-go="l-laps" data-v="${v}" class="${S.laps===v?'on':''}">${v}×</button>`).join('')}</div></div>
   <button type="button" class="btn primary big" data-go="l-start">Inizia la partita</button>
-  <p class="hint" style="margin-top:12px">${profile?'Le partite su un solo telefono hanno statistiche separate da quelle online.':'<button type="button" class="linkbtn" data-go="login">Accedi</button> per salvare le statistiche delle partite offline.'}</p>`;
+  <p class="hint" style="margin-top:12px">Le partite su un solo telefono non vengono salvate nelle statistiche.</p>`;
 };
 BIND.localsetup=()=>{document.querySelectorAll('.lnin').forEach(i=>{i.oninput=()=>{lsetup.names[+i.dataset.i]=i.value;const a=i.parentElement.querySelector('.av');if(a)a.textContent=(i.value||String(+i.dataset.i+1))[0].toUpperCase()}})};
 
@@ -122,7 +122,7 @@ BIND.local=()=>{
   bindDial();
   const ci=$('#lclue');if(ci){ci.oninput=()=>{L.clue=ci.value};ci.onkeydown=e=>{if(e.key==='Enter')go('l-clue')}}
   if(S.phase==='reveal'){buzz([20,60,20]);if(Object.values(S.pts).includes(4)&&(S.mode==='team'?S.pts.team===4:Object.entries(S.pts).some(([k,v])=>k!=='psy'&&v===4)))confetti(150,1900)}
-  if(S.phase==='end'){confetti(200,1200);saveLocal()}
+  if(S.phase==='end')confetti(200,1200);
 };
 function lgo(phase){L.phase=phase;$('#app').innerHTML=SCREENS.local();enterAnim();BIND.local();window.scrollTo(0,0)}
 
@@ -153,28 +153,3 @@ function localGuard(){
   return false;
 }
 
-// ----- statistiche offline -----
-function localResult(){
-  const meI=L.players.findIndex(p=>p.me);if(meI<0)return null;
-  const mine=L.mode==='team'?L.history.map(h=>({d:Math.abs(h.guesses.team-h.target),p:h.pts.team})):L.history.filter(h=>h.guesses[meI]!=null).map(h=>({d:Math.abs(h.guesses[meI]-h.target),p:h.pts[meI]}));
-  const me=L.players[meI];
-  return{client_id:L.matchId,mode:L.mode,score:L.mode==='team'?L.team:me.score,position:L.mode==='team'?null:1+L.players.filter(p=>p.score>me.score).length,
-    players:L.players.length,rounds:Math.max(1,L.total),bulls:mine.filter(x=>x.p===4).length,avg_distance:mine.length?Math.round(mine.reduce((s,x)=>s+x.d,0)/mine.length):null,
-    others:L.players.filter(p=>!p.me).map(p=>p.name.slice(0,22))};
-}
-async function saveLocal(){
-  if(!L||L.saved||!profile)return;L.saved=true;
-  const row=localResult();if(!row)return;
-  const q=ls.get('sintonia_offline_queue')||[];q.push({...row,user_id:profile.id});ls.set('sintonia_offline_queue',q);
-  await flushOfflineQueue(true);
-}
-async function flushOfflineQueue(announce){
-  if(!profile||!sbc)return;
-  let q=ls.get('sintonia_offline_queue')||[];
-  const mine=q.filter(r=>r.user_id===profile.id);if(!mine.length)return;
-  const {error}=await sbc.from('sintonia_offline_results').upsert(mine,{onConflict:'user_id,client_id',ignoreDuplicates:true});
-  if(error){if(announce)toast('Senza connessione: salvo la partita appena torni online',3500);return}
-  q=(ls.get('sintonia_offline_queue')||[]).filter(r=>r.user_id!==profile.id);ls.set('sintonia_offline_queue',q);
-  statsCache=null;if(announce)toast('Partita salvata nelle statistiche offline');
-}
-window.addEventListener('online',()=>flushOfflineQueue(false));
