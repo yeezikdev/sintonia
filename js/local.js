@@ -1,0 +1,180 @@
+// ===== Sintonia · modalità offline: un solo telefono che passa di mano =====
+let L=null,lsetup=null,statsTab='online';
+ICON.phone='<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg>';
+ICON.swap='<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg>';
+const LMODES={solo:{t:'Ognuno per sé',d:'Ognuno sceglie in segreto. Classifica individuale.'},team:{t:'Tutti insieme',d:'Decidete insieme la lancetta. Punteggio di squadra.'}};
+
+function myLocalName(){return profile?profile.username:(guestSaved.raw||'')}
+function initSetup(){
+  const saved=ls.get('sintonia_local')||{};
+  const others=(saved.names||[]).filter(Boolean);
+  lsetup={mode:saved.mode==='team'?'team':'solo',laps:[1,2,3].includes(saved.laps)?saved.laps:1,names:[myLocalName(),...others.slice(0,11)]};
+  while(lsetup.names.length<3)lsetup.names.push('');
+}
+
+// ----- schermata di preparazione -----
+SCREENS.localsetup=()=>{
+  if(!lsetup)initSetup();
+  const S=lsetup,n=S.names.length;
+  return`
+  <div class="topline"><button type="button" class="iconbtn" data-go="back" aria-label="Indietro">${ICON.back}</button><b class="ttl">Un solo telefono</b><span style="width:44px"></span></div>
+  <p class="sub tc">Giocate tutti con questo telefono: ve lo passate a turno quando tocca a voi.</p>
+  <h3>Giocatori</h3>
+  <div class="flist" id="lnames">${S.names.map((v,i)=>{const mine=i===0&&profile;return`<div class="frow lname">${av({name:v||String(i+1),color:COLORS[i%COLORS.length]})}${mine?`<div class="fi"><b>${nm(profile)}</b><small>Sei tu · la partita va nelle tue statistiche</small></div>`:`<input class="lnin" data-i="${i}" maxlength="14" placeholder="${i===0?'Il tuo nome':'Giocatore '+(i+1)}" value="${esc(v)}" autocomplete="off" aria-label="Nome giocatore ${i+1}">`}${n>2&&!mine?`<button type="button" class="iconbtn sm" data-go="l-del" data-i="${i}" aria-label="Togli giocatore">${ICON.x}</button>`:''}</div>`}).join('')}</div>
+  ${n<12?`<button type="button" class="btn ghost big addp" data-go="l-add">${ICON.plus}Aggiungi giocatore</button>`:''}
+  <h3>Modalità</h3>
+  <div class="modes">${Object.entries(LMODES).map(([k,m])=>`<button type="button" class="mode ${S.mode===k?'on':''}" data-go="l-mode" data-m="${k}"><b>${m.t}</b><small>${m.d}</small></button>`).join('')}</div>
+  <div class="setting"><span>Volte che ognuno fa il Sensitivo</span><div class="seg">${[1,2,3].map(v=>`<button type="button" data-go="l-laps" data-v="${v}" class="${S.laps===v?'on':''}">${v}×</button>`).join('')}</div></div>
+  <button type="button" class="btn primary big" data-go="l-start">Inizia la partita</button>
+  <p class="hint" style="margin-top:12px">${profile?'Le partite su un solo telefono hanno statistiche separate da quelle online.':'<button type="button" class="linkbtn" data-go="login">Accedi</button> per salvare le statistiche delle partite offline.'}</p>`;
+};
+BIND.localsetup=()=>{document.querySelectorAll('.lnin').forEach(i=>{i.oninput=()=>{lsetup.names[+i.dataset.i]=i.value;const a=i.parentElement.querySelector('.av');if(a)a.textContent=(i.value||String(+i.dataset.i+1))[0].toUpperCase()}})};
+
+function startLocal(){
+  const S=lsetup;
+  const names=S.names.map(x=>x.trim()).filter(Boolean);
+  if(names.length<2){toast('Servono almeno 2 giocatori');return}
+  const low=names.map(x=>x.toLowerCase());
+  if(new Set(low).size!==low.length){toast('Ci sono due giocatori con lo stesso nome');return}
+  ls.set('sintonia_local',{mode:S.mode,laps:S.laps,names:names.slice(profile?1:0)});
+  if(!profile&&names[0]){guestSaved.raw=guestSaved.raw||names[0];ls.set('sintonia_guest',guestSaved)}
+  const meFirst=!!profile&&S.names[0]===profile.username;
+  L={mode:S.mode,players:names.map((n,i)=>({id:'p'+i,name:n,color:COLORS[i%COLORS.length],score:0,me:meFirst&&i===0,uid:meFirst&&i===0?profile.id:null})),
+     order:shuffle(names.map((_,i)=>i)),laps:S.laps,round:0,team:0,used:[],history:[],matchId:uuid(),saved:false};
+  L.total=L.players.length*L.laps;
+  startLocalRound();show('local');buzz(30);
+}
+function startLocalRound(){
+  const n=L.players.length;L.psy=L.order[L.round%n];
+  if(L.used.length>=CARDS.length)L.used=[];let k;do{k=Math.floor(Math.random()*CARDS.length)}while(L.used.includes(k));L.used.push(k);
+  L.card=CARDS[k];L.target=Math.round(3+Math.random()*94);L.clue='';L.guesses={};L.pts={};
+  L.queue=L.mode==='team'?['team']:shuffle(L.players.map((_,i)=>i).filter(i=>i!==L.psy));
+  L.phase='pass-psy';
+}
+const LP=i=>L.players[i];
+function lReveal(){
+  L.pts={};
+  if(L.mode==='team'){const p=scoreFor(Math.abs(L.guesses.team-L.target));L.pts.team=p;L.team+=p}
+  else{let sum=0,c=0;for(const [i,v] of Object.entries(L.guesses)){const p=scoreFor(Math.abs(v-L.target));L.pts[i]=p;LP(+i).score+=p;sum+=p;c++}const ps=c?Math.round(sum/c):0;L.pts.psy=ps;LP(L.psy).score+=ps}
+  L.history.push({psy:L.psy,clue:L.clue,card:L.card.join(' ↔ '),target:L.target,guesses:{...L.guesses},pts:{...L.pts}});
+  L.phase='reveal';
+}
+
+// ----- schermate di gioco -----
+const passScreen=(p,line,btn)=>`<div class="pass">
+  <div class="passicon">${ICON.swap}</div>
+  <p class="lbl tc">Passa il telefono a</p>
+  ${av(p,'xl')}
+  <h1 class="headline tc">${nm(p)}</h1>
+  <p class="sub tc">${line}</p>
+  <button type="button" class="btn primary big" data-go="l-next">${btn}</button>
+  <p class="hint">Gli altri non devono guardare lo schermo 🙈</p></div>`;
+const lEnds=()=>`<div id="ends"><span>${esc(L.card[0])}</span><span>${esc(L.card[1])}</span></div>`;
+const lClue=()=>`<div class="cluebox"><div class="lbl">Indizio di ${nm(LP(L.psy))}</div><div class="clue">${L.clue?`“${esc(L.clue)}”`:'<span class="voice">Detto a voce</span>'}</div></div>`;
+const L_VIEWS={
+  'pass-psy':()=>passScreen(LP(L.psy),'è il Sensitivo di questo round: solo lui deve vedere il bersaglio.','Sono io, mostra il bersaglio'),
+  psy:()=>`<div class="role psy">${nm(LP(L.psy))}, sei il Sensitivo 🔮</div>
+    <p class="hint">Il bersaglio è nella zona colorata. Scrivi un indizio, oppure dillo a voce agli altri.</p>
+    ${dial({zones:true,target:L.target,cover:'opening'})}${lEnds()}
+    <input id="lclue" maxlength="60" placeholder="Il tuo indizio (facoltativo)" value="${esc(L.clue)}" autocomplete="off">
+    <div class="row"><button type="button" class="btn ghost" data-go="l-reroll">🔄 Cambia carta</button><button type="button" class="btn primary" data-go="l-clue">Nascondi e passa</button></div>`,
+  'pass-g':()=>passScreen(LP(L.queue[0]),'tocca a te indovinare dove si trova il bersaglio.','Sono io, fammi indovinare'),
+  'pass-team':()=>`<div class="pass"><div class="passicon">${ICON.swap}</div><p class="lbl tc">Ora tocca alla squadra</p><h1 class="headline tc">Mettete il telefono<br>al centro</h1><p class="sub tc">Discutete e decidete insieme dove sta il bersaglio. Il Sensitivo può solo guardare, senza suggerire!</p><button type="button" class="btn primary big" data-go="l-next">Pronti</button></div>`,
+  guess:()=>{const team=L.queue[0]==='team',p=team?null:LP(L.queue[0]);
+    return`${lClue()}<p class="role">${team?'Dove sta il bersaglio?':nm(p)+', dove sta?'}</p>
+    ${dial({cover:'closed',interactive:true,needle:myGuess,color:team?'#ffd23f':p.color})}${lEnds()}
+    <div class="row"><button type="button" class="btn ghost sq" data-a="m" aria-label="Sposta a sinistra">‹</button><button type="button" class="btn primary" data-go="l-guess">Conferma</button><button type="button" class="btn ghost sq" data-a="p" aria-label="Sposta a destra">›</button></div>
+    ${team?'':`<p class="hint" style="margin-top:12px">Ancora ${L.queue.length-1} ${L.queue.length-1===1?'giocatore':'giocatori'} dopo di te</p>`}`},
+  'pass-reveal':()=>`<div class="pass"><div class="passicon">${ICON.swap}</div><p class="lbl tc">Hanno risposto tutti</p><h1 class="headline tc">Riunitevi tutti<br>intorno al telefono</h1><p class="sub tc">Ora si scopre dove stava il bersaglio.</p><button type="button" class="btn primary big" data-go="l-reveal">Rivela il bersaglio</button></div>`,
+  reveal:()=>{
+    const last=L.round+1>=L.total;
+    if(L.mode==='team'){const v=L.guesses.team,p=L.pts.team;
+      return`${lClue()}${dial({zones:true,target:L.target,guesses:[{v,name:'S',color:'#ffd23f'}],cover:'opening'})}${lEnds()}
+      ${p===4?'<div class="bull">🎯 Centro pieno!</div>':''}
+      <div class="res"><div class="ri anim ${p?'':'zero'} ${p===4?'top':''}" style="animation-delay:1.7s"><span class="av" style="--c:#ffd23f">★</span><div>La squadra<br><span class="m">${Math.abs(v-L.target)} di distanza</span></div><b class="pts">+${p}</b></div></div>
+      <button type="button" class="btn primary big" data-go="l-nextround">${last?'Vedi il risultato 🏆':'Prossimo round →'}</button>`}
+    const gs=Object.entries(L.guesses).map(([i,v])=>({i:+i,v,...LP(+i)})).sort((a,b)=>(L.pts[b.i]||0)-(L.pts[a.i]||0)||Math.abs(a.v-L.target)-Math.abs(b.v-L.target));
+    const bulls=gs.filter(g=>L.pts[g.i]===4);
+    return`${lClue()}${dial({zones:true,target:L.target,guesses:gs,cover:'opening'})}${lEnds()}
+      ${bulls.length?`<div class="bull">🎯 Centro${bulls.length>1?'':' di '+nm(bulls[0])}!</div>`:''}
+      <div class="res">${gs.map((g,k)=>`<div class="ri anim ${L.pts[g.i]?'':'zero'} ${L.pts[g.i]===4?'top':''}" style="animation-delay:${(1.7+k*.12).toFixed(2)}s">${av(g)}<div>${nm(g)}<br><span class="m">${Math.abs(g.v-L.target)} di distanza</span></div><b class="pts">+${L.pts[g.i]||0}</b></div>`).join('')}
+      <div class="ri anim psyrow" style="animation-delay:${(1.7+gs.length*.12).toFixed(2)}s">${av(LP(L.psy))}<div>${nm(LP(L.psy))}<br><span class="m">Sensitivo · media del gruppo</span></div><b class="pts">+${L.pts.psy||0}</b></div></div>
+      <button type="button" class="btn primary big" data-go="l-nextround">${last?'Vedi la classifica 🏆':'Prossimo round →'}</button>`},
+  end:()=>{
+    const again=`<button type="button" class="btn primary big" data-go="l-again">Gioca ancora</button><button type="button" class="btn ghost big" data-go="l-home" style="margin-top:10px">Torna alla home</button>`;
+    if(L.mode==='team'){const max=L.total*4,pct=Math.round(L.team/max*100);
+      const verdict=pct>=75?'Mente alveare! 🧠':pct>=55?'Ottima sintonia!':pct>=35?'Non male, ci siete quasi':'Serve più allenamento 😅';
+      return`<h2>Risultato della squadra</h2><p class="hint">${verdict}</p>
+        <div class="teamscore"><b>${L.team}</b><span>su ${max} punti</span><div class="lvbar big"><span style="width:${pct}%"></span></div></div>
+        <div class="chips" style="margin-bottom:22px">${L.players.map(p=>`<span class="chip">${av(p,'sm')}${nm(p)}</span>`).join('')}</div>${again}`}
+    const sorted=[...L.players].sort((a,b)=>b.score-a.score);
+    const top=[sorted[1],sorted[0],sorted[2]],cls=['p2','p1','p3'],delay=[.9,1.4,.5],medal=['🥈','🥇','🥉'];
+    const pod=top.map((p,i)=>p?`<div class="pod ${cls[i]}" style="--d:${delay[i]}s">${i===1?'<div class="crown">👑</div>':''}${av(p,'lg')}<div class="nm">${nm(p)}</div><div class="col"><small>${medal[i]}</small>${p.score}</div></div>`:'').join('');
+    const rest=sorted.slice(3).map((p,i)=>`<div class="ri" style="animation-delay:${(1.8+i*.1).toFixed(2)}s"><span class="pos">${i+4}</span>${av(p)}${nm(p)}<b>${p.score}</b></div>`).join('');
+    return`<h2>Classifica finale</h2><p class="hint">Chi è più in sintonia con il gruppo?</p><div class="podium">${pod}</div>${rest?`<div class="res rest">${rest}</div>`:''}${again}`}
+};
+SCREENS.local=()=>L?L_VIEWS[L.phase]():'';
+BIND.local=()=>{
+  if(!L)return goHome();
+  const S=L,pct=Math.min(100,(S.round+1)/S.total*100);
+  const scores=S.mode==='team'?`<span class="sc"><span class="av sm" style="--c:#ffd23f">★</span>Squadra <b>${S.team}</b></span>`:[...S.players].sort((a,b)=>b.score-a.score).map(p=>`<span class="sc ${S.players.indexOf(p)===S.psy&&S.phase!=='end'?'psy':''}">${av(p,'sm')}${nm(p)} <b>${p.score}</b></span>`).join('');
+  $('#top').innerHTML=`<div class="bar"><span class="codechip">${ICON.phone.replace('width="28" height="28"','width="16" height="16"')} Offline</span>${S.phase!=='end'?`<span class="rnd">Round ${Math.min(S.round+1,S.total)}/${S.total}<span class="prog"><span style="width:${pct}%"></span></span></span>`:''}<button class="exit" data-go="l-exit" aria-label="Esci dalla partita"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Esci</button></div><div class="scores">${scores}</div>`;
+  bindDial();
+  const ci=$('#lclue');if(ci){ci.oninput=()=>{L.clue=ci.value};ci.onkeydown=e=>{if(e.key==='Enter')go('l-clue')}}
+  if(S.phase==='reveal'){buzz([20,60,20]);if(Object.values(S.pts).includes(4)&&(S.mode==='team'?S.pts.team===4:Object.entries(S.pts).some(([k,v])=>k!=='psy'&&v===4)))confetti(150,1900)}
+  if(S.phase==='end'){confetti(200,1200);saveLocal()}
+};
+function lgo(phase){L.phase=phase;$('#app').innerHTML=SCREENS.local();enterAnim();BIND.local();window.scrollTo(0,0)}
+
+// ----- azioni -----
+const LOCAL_GO={
+  local:()=>{initSetup();show('localsetup')},
+  'l-add':()=>{lsetup.names.push('');refresh();setTimeout(()=>{const ins=document.querySelectorAll('.lnin');if(ins.length)ins[ins.length-1].focus()},50)},
+  'l-del':el=>{lsetup.names.splice(+el.dataset.i,1);refresh()},
+  'l-mode':el=>{lsetup.mode=el.dataset.m;refresh()},
+  'l-laps':el=>{lsetup.laps=+el.dataset.v;refresh()},
+  'l-start':()=>startLocal(),
+  'l-next':()=>{if(L.phase==='pass-psy')lgo('psy');else{myGuess=50;lgo('guess')}},
+  'l-reroll':()=>{let k;do{k=Math.floor(Math.random()*CARDS.length)}while(L.used.includes(k));L.used.push(k);L.card=CARDS[k];const e=$('#ends');if(e){e.innerHTML=`<span>${esc(L.card[0])}</span><span>${esc(L.card[1])}</span>`;e.classList.remove('swap');void e.offsetWidth;e.classList.add('swap')}},
+  'l-clue':()=>{const ci=$('#lclue');L.clue=ci?ci.value.trim().slice(0,60):'';buzz(20);lgo(L.mode==='team'?'pass-team':'pass-g')},
+  'l-guess':()=>{buzz(25);L.guesses[L.queue[0]]=myGuess;L.queue.shift();lgo(L.queue.length?'pass-g':'pass-reveal')},
+  'l-reveal':()=>{lReveal();lgo('reveal')},
+  'l-nextround':()=>{L.round++;if(L.round>=L.total)lgo('end');else{startLocalRound();lgo('pass-psy')}},
+  'l-again':()=>{const names=L.players.map(p=>p.name);lsetup={mode:L.mode,laps:L.laps,names};startLocal()},
+  'l-home':()=>{L=null;goHome()},
+  'l-exit':()=>{if(L.phase==='end'||confirm('Uscire dalla partita? I punti di questa partita andranno persi.')){L=null;goHome()}},
+  stab:el=>{statsTab=el.dataset.t;refresh()}
+};
+function localGuard(){
+  if(view==='local'&&L&&L.phase!=='end'){
+    if(confirm('Uscire dalla partita? I punti di questa partita andranno persi.')){L=null;return false}
+    return true;
+  }
+  return false;
+}
+
+// ----- statistiche offline -----
+function localResult(){
+  const meI=L.players.findIndex(p=>p.me);if(meI<0)return null;
+  const mine=L.mode==='team'?L.history.map(h=>({d:Math.abs(h.guesses.team-h.target),p:h.pts.team})):L.history.filter(h=>h.guesses[meI]!=null).map(h=>({d:Math.abs(h.guesses[meI]-h.target),p:h.pts[meI]}));
+  const me=L.players[meI];
+  return{client_id:L.matchId,mode:L.mode,score:L.mode==='team'?L.team:me.score,position:L.mode==='team'?null:1+L.players.filter(p=>p.score>me.score).length,
+    players:L.players.length,rounds:Math.max(1,L.total),bulls:mine.filter(x=>x.p===4).length,avg_distance:mine.length?Math.round(mine.reduce((s,x)=>s+x.d,0)/mine.length):null,
+    others:L.players.filter(p=>!p.me).map(p=>p.name.slice(0,22))};
+}
+async function saveLocal(){
+  if(!L||L.saved||!profile)return;L.saved=true;
+  const row=localResult();if(!row)return;
+  const q=ls.get('sintonia_offline_queue')||[];q.push({...row,user_id:profile.id});ls.set('sintonia_offline_queue',q);
+  await flushOfflineQueue(true);
+}
+async function flushOfflineQueue(announce){
+  if(!profile||!sbc)return;
+  let q=ls.get('sintonia_offline_queue')||[];
+  const mine=q.filter(r=>r.user_id===profile.id);if(!mine.length)return;
+  const {error}=await sbc.from('sintonia_offline_results').upsert(mine,{onConflict:'user_id,client_id',ignoreDuplicates:true});
+  if(error){if(announce)toast('Senza connessione: salvo la partita appena torni online',3500);return}
+  q=(ls.get('sintonia_offline_queue')||[]).filter(r=>r.user_id!==profile.id);ls.set('sintonia_offline_queue',q);
+  statsCache=null;if(announce)toast('Partita salvata nelle statistiche offline');
+}
+window.addEventListener('online',()=>flushOfflineQueue(false));

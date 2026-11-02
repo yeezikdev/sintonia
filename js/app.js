@@ -5,6 +5,7 @@ let presenceCh=null,userCh=null,statsCache=null,invitedHere=new Set(),loginMode=
 const recorded=new Set(ls.get('sintonia_recorded')||[]);
 const TABS=['home','amici','stats'];
 const ICON={
+  phone:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg>',
   plus:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
   enter:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>',
   back:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>',
@@ -57,6 +58,7 @@ window.addEventListener('popstate',()=>{
     else{try{history.pushState({sint:'room'},'')}catch(e){}}
     return;
   }
+  if(window.localGuard&&localGuard()){try{history.pushState({sint:'v'},'')}catch(e){}return}
   backNow();
 });
 
@@ -84,6 +86,7 @@ const SCREENS={
     <div class="actions">
       ${pendingRoom?`<button type="button" class="btn big join2 tile" data-go="create">${ICON.plus}<span>Crea una nuova stanza</span><small>Sei l'host</small></button><button type="button" class="btn primary big tile" data-go="g-join">${ICON.enter}<span>Entra nella stanza ${esc(pendingRoom)}</span><small>Ti hanno invitato</small></button>`
         :`<button type="button" class="btn primary big tile" data-go="create">${ICON.plus}<span>Crea una stanza</span><small>Sei l'host</small></button><button type="button" class="btn big join2 tile" data-go="entra">${ICON.enter}<span>Entra in una stanza</span><small>Codice o QR</small></button>`}
+      <button type="button" class="btn big tile wide local" data-go="local">${ICON.phone||''}<span>Un solo telefono</span><small>Passatevelo a turno, senza stanza</small></button>
       ${resumeBtn()}
     </div>
     ${me.name?`<button type="button" class="whoami" data-go="gname">${av({name:me.name,color:me.color},'sm')}Giochi come <b>${esc(me.name)}</b><span>cambia</span></button>`:''}
@@ -120,6 +123,7 @@ const SCREENS={
     <div class="actions">
       <button type="button" class="btn primary big tile" data-go="create">${ICON.plus}<span>Crea una stanza</span><small>Sei l'host</small></button>
       <button type="button" class="btn big join2 tile" data-go="entra">${ICON.enter}<span>Entra in una stanza</span><small>Codice, QR o invito</small></button>
+      <button type="button" class="btn big tile wide local" data-go="local">${ICON.phone||''}<span>Un solo telefono</span><small>Passatevelo a turno, senza stanza</small></button>
       ${resumeBtn()}
     </div>
     ${friends.accepted.length?`<div class="sechead"><h3>Amici online · ${on.length}</h3><button type="button" class="linkbtn" data-go="amici">Vedi tutti</button></div>
@@ -157,11 +161,12 @@ const SCREENS={
     return`
     <div class="topline"><button type="button" class="iconbtn" data-go="back" aria-label="Indietro">${ICON.back}</button><b class="ttl">Profilo</b><span style="width:44px"></span></div>
     <div class="phead">${av({name:profile.username,color:profile.color},'xl')}<div class="pinfo"><b>${nm(profile)}</b><div class="lvrow"><span class="lv">LV ${L.lv}</span><span class="lvbar"><span style="width:${L.cur/5}%"></span></span></div><small>${L.cur} / 500 XP al livello ${L.lv+1}</small></div></div>
-    <div class="sgrid"><div class="scard"><small>Partite</small><b>${st.matches}</b></div><div class="scard"><small>Vittorie</small><b class="y">${st.wins}</b></div><div class="scard"><small>Centri pieni</small><b class="p">${st.bulls}</b></div><div class="scard"><small>Distanza media</small><b class="c">${st.avgDist==null?'–':st.avgDist}</b></div></div>
+    <div class="seg wide stab"><button type="button" data-go="stab" data-t="online" class="${statsTab!=='offline'?'on':''}">Online</button><button type="button" data-go="stab" data-t="offline" class="${statsTab==='offline'?'on':''}">${ICON.phone?ICON.phone.replace('width="28" height="28"','width="16" height="16"'):''} Un telefono</button></div>
+    ${statsTab==='offline'?offlineStatsHtml(st.off):`<div class="sgrid"><div class="scard"><small>Partite</small><b>${st.matches}</b></div><div class="scard"><small>Vittorie</small><b class="y">${st.wins}</b></div><div class="scard"><small>Centri pieni</small><b class="p">${st.bulls}</b></div><div class="scard"><small>Distanza media</small><b class="c">${st.avgDist==null?'–':st.avgDist}</b></div></div>
     ${st.soul?`<div class="soul"><div class="ring"><svg width="66" height="66" viewBox="0 0 66 66" aria-hidden="true"><circle cx="33" cy="33" r="28" fill="none" stroke="#262044" stroke-width="7"/><circle cx="33" cy="33" r="28" fill="none" stroke="#4dd6ff" stroke-width="7" stroke-linecap="round" stroke-dasharray="${(st.soul.pct*1.76).toFixed(0)} 176" transform="rotate(-90 33 33)"/></svg><b>${st.soul.pct}%</b></div><div><small class="cy">Anima gemella</small><b>${esc(st.soul.name)}</b><span>Capisci i suoi indizi meglio di tutti</span></div></div>`:''}
     ${st.best?`<div class="bestclue"><small>Il tuo indizio migliore</small><b>“${esc(st.best.clue)}”</b><span>${esc(st.best.card)} · ${st.best.bulls} centri su ${st.best.n}</span></div>`:''}
     <h3>Ultime partite</h3>
-    <div class="flist">${st.recent.length?st.recent.map(r=>`<div class="frow"><span class="posb p${Math.min(r.position,4)}">${r.position}°</span><div class="fi"><b>${r.others.length?'Con '+esc(r.others.slice(0,3).join(', '))+(r.others.length>3?' e altri':''):'Partita'}</b><small>${ago(r.created_at)} · ${r.rounds} round</small></div><b class="ptsr">${r.score} pt</b></div>`).join(''):'<p class="empty">Gioca la tua prima partita con un account per vedere qui le statistiche</p>'}</div>
+    <div class="flist">${st.recent.length?st.recent.map(r=>`<div class="frow"><span class="posb p${Math.min(r.position,4)}">${r.position}°</span><div class="fi"><b>${r.others.length?'Con '+esc(r.others.slice(0,3).join(', '))+(r.others.length>3?' e altri':''):'Partita'}</b><small>${ago(r.created_at)} · ${r.rounds} round</small></div><b class="ptsr">${r.score} pt</b></div>`).join(''):'<p class="empty">Gioca la tua prima partita con un account per vedere qui le statistiche</p>'}</div>`}
     ${profile.badge?`<p class="hint" style="margin-top:22px">${VBADGE} Account verificato: il nome utente non si può cambiare</p><button type="button" class="btn ghost big" data-go="logout" style="margin-top:10px">Esci</button>`:`<div class="grid2" style="margin-top:22px"><button type="button" class="btn" data-go="rename">Cambia nome</button><button type="button" class="btn ghost" data-go="logout">Esci</button></div>`}`}
 };
 
@@ -231,6 +236,7 @@ async function go(a,el){
       await sbc.from('friendships').delete().or(`and(requester.eq.${id},addressee.eq.${profile.id}),and(requester.eq.${profile.id},addressee.eq.${id})`);
       await loadFriends();refresh();break}
     case 'invite':{el.disabled=true;await sendInvite(id,code);renderInviteFriends();break}
+    default:if(typeof LOCAL_GO!=='undefined'&&LOCAL_GO[a])LOCAL_GO[a](el);
   }
 }
 
@@ -362,7 +368,7 @@ async function onSession(s){
   if(error){toast('Non riesco a caricare il profilo');if(!code)show('welcome','',{root:true});return}
   profile=data;
   if(!profile){if(!code)show('username','',{root:true});return}
-  setAccountMe();startUserRealtime();
+  setAccountMe();startUserRealtime();if(window.flushOfflineQueue)flushOfflineQueue(false);
   if(code)return;
   if(pendingRoom){const r=pendingRoom;pendingRoom=null;joinRoom(r)}else show('home','',{root:true});
 }
@@ -453,22 +459,40 @@ function onEnteredRoom(c){trackPresence();try{history.pushState({sint:'room'},''
 function onLeftRoom(){invitedHere=new Set();setTimeout(trackPresence,0)}
 
 // ===== Statistiche =====
+function offStats(rows){
+  const solo=rows.filter(r=>r.mode==='solo'),team=rows.filter(r=>r.mode==='team');
+  const d=rows.filter(r=>r.avg_distance!=null);
+  return{matches:rows.length,wins:solo.filter(r=>r.position===1).length,bulls:rows.reduce((s,r)=>s+r.bulls,0),
+    avgDist:d.length?Math.round(d.reduce((s,r)=>s+r.avg_distance,0)/d.length):null,
+    bestTeam:team.length?team.reduce((b,r)=>(r.score/(r.rounds*4))>(b.score/(b.rounds*4))?r:b):null,soloN:solo.length,teamN:team.length,recent:rows.slice(0,5)};
+}
+function offlineStatsHtml(o){
+  if(!o||!o.matches)return`<p class="empty" style="margin-top:18px">Non hai ancora giocato partite su un solo telefono.</p><button type="button" class="btn primary big" data-go="local">${ICON.phone||''}Gioca su un solo telefono</button>`;
+  return`<div class="sgrid"><div class="scard"><small>Partite</small><b>${o.matches}</b></div><div class="scard"><small>Vittorie</small><b class="y">${o.wins}</b></div><div class="scard"><small>Centri pieni</small><b class="p">${o.bulls}</b></div><div class="scard"><small>Distanza media</small><b class="c">${o.avgDist==null?'–':o.avgDist}</b></div></div>
+    <p class="hint" style="margin:10px 0 0">${o.soloN} ognuno per sé · ${o.teamN} tutti insieme</p>
+    ${o.bestTeam?`<div class="bestclue"><small>Miglior partita di squadra</small><b>${o.bestTeam.score} punti su ${o.bestTeam.rounds*4}</b><span>${o.bestTeam.others.length?'Con '+esc(o.bestTeam.others.slice(0,3).join(', ')):''} · ${ago(o.bestTeam.created_at)}</span></div>`:''}
+    <h3>Ultime partite</h3>
+    <div class="flist">${o.recent.map(r=>`<div class="frow">${r.mode==='team'?'<span class="posb p1">★</span>':`<span class="posb p${Math.min(r.position||4,4)}">${r.position}°</span>`}<div class="fi"><b>${r.others.length?'Con '+esc(r.others.slice(0,3).join(', '))+(r.others.length>3?' e altri':''):'Partita'}</b><small>${r.mode==='team'?'Tutti insieme':'Ognuno per sé'} · ${ago(r.created_at)} · ${r.rounds} round</small></div><b class="ptsr">${r.score} pt</b></div>`).join('')}</div>`;
+}
+
 async function loadStats(){
   if(!profile)return;
   const uid=profile.id;
-  const [r,g,c]=await Promise.all([
+  const [r,g,c,o]=await Promise.all([
     sbc.from('sintonia_results').select('*').eq('user_id',uid).order('created_at',{ascending:false}).limit(500),
     sbc.from('sintonia_guesses').select('psychic_id,distance,points').eq('user_id',uid).limit(5000),
-    sbc.from('sintonia_guesses').select('clue,card,points').eq('psychic_id',uid).limit(5000)
+    sbc.from('sintonia_guesses').select('clue,card,points').eq('psychic_id',uid).limit(5000),
+    sbc.from('sintonia_offline_results').select('*').eq('user_id',uid).order('created_at',{ascending:false}).limit(500)
   ]);
+  const off=o.data||[];
   const res=r.data||[],gs=g.data||[],cl=c.data||[];
-  const xp=res.reduce((s,x)=>s+x.score*10+25,0);
+  const xp=res.reduce((s,x)=>s+x.score*10+25,0)+off.reduce((s,x)=>s+x.score*5+15,0);
   const by={};gs.forEach(x=>{if(!x.psychic_id)return;(by[x.psychic_id]=by[x.psychic_id]||[]).push(x.points)});
   let soul=null;for(const [id,arr] of Object.entries(by)){if(arr.length<3)continue;const avg=arr.reduce((a,b)=>a+b,0)/arr.length;if(!soul||avg>soul.avg)soul={id,avg}}
   if(soul){await fetchProfiles([soul.id]);const p=profCache[soul.id];soul=p?{name:p.username,pct:Math.round(soul.avg/4*100)}:null}
   const byClue={};cl.forEach(x=>{const k=x.clue+'|'+x.card;(byClue[k]=byClue[k]||{clue:x.clue,card:x.card,n:0,sum:0,bulls:0});byClue[k].n++;byClue[k].sum+=x.points;if(x.points===4)byClue[k].bulls++});
   const best=Object.values(byClue).filter(x=>x.clue).sort((a,b)=>(b.sum/b.n)-(a.sum/a.n)||b.n-a.n)[0]||null;
-  statsCache={xp,matches:res.length,wins:res.filter(x=>x.position===1).length,bulls:gs.filter(x=>x.points===4).length,avgDist:gs.length?Math.round(gs.reduce((s,x)=>s+x.distance,0)/gs.length):null,soul,best,recent:res.slice(0,5)};
+  statsCache={xp,matches:res.length,wins:res.filter(x=>x.position===1).length,bulls:gs.filter(x=>x.points===4).length,avgDist:gs.length?Math.round(gs.reduce((s,x)=>s+x.distance,0)/gs.length):null,soul,best,recent:res.slice(0,5),off:offStats(off)};
 }
 async function recordMatch(){
   const S=state;if(!profile||!S||!S.matchId||recorded.has(S.matchId))return;
@@ -500,8 +524,9 @@ async function scanQR(){
 }
 
 // ===== Versione e patch notes =====
-const VERSION='2.1';
+const VERSION='2.2';
 const NOTES=[
+  {v:'2.2',d:'2 novembre 2026',t:'Un solo telefono',l:['Nuova modalità per giocare in compagnia passandovi un solo telefono, senza creare stanze','Due modi: "Ognuno per sé" con classifica individuale, oppure "Tutti insieme" con punteggio di squadra','Schermate di passaggio del telefono, così nessuno sbircia il bersaglio o le risposte degli altri','Statistiche separate: nel profilo puoi scegliere tra Online e Un telefono','Se manca internet, la partita viene salvata appena torni online']},
   {v:'2.1',d:'2 novembre 2026',t:'Home più pulita',l:['Anche la home con account ha il quadrante, i due riquadri affiancati e solo inviti e amici online','Il quadrante animato è il protagonista della home','Solo due riquadri affiancati: Crea una stanza a sinistra, Entra in una stanza a destra','Il nome da ospite si chiede solo quando inizi a giocare, e poi si ricorda','Accesso e regole diventano link discreti in basso','Le regole si aprono in un pannello a passi']},
   {v:'2.0',d:'2 novembre 2026',t:'Account, amici e statistiche',l:['Si gioca subito come ospite: scrivi un nome e diventi anon_nome','Accesso con email o Google e nome utente unico scelto da te','Home separata tra "Crea una stanza" ed "Entra in una stanza"','Schermata per entrare con il codice o scansionando il QR','Amici: cerca per nome utente, richieste, chi è online e in quale stanza','Invita gli amici nella tua stanza con un tocco, anche se sono offline','Profilo con livello, partite, vittorie, centri, anima gemella e indizio migliore','Le partite giocate con un account vengono salvate automaticamente']},
   {v:'1.3',d:'2 novembre 2026',t:'Lancette in diretta',l:['Il Sensitivo vede in tempo reale le lancette degli altri mentre le muovono','Le lancette restano sfumate finché il giocatore non conferma, poi diventano piene con un segno verde','Etichetta "In diretta" sul quadrante del Sensitivo']},
