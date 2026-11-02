@@ -93,7 +93,8 @@ const SCREENS={
       ${resumeBtn()}
     </div>
     ${me.name?`<button type="button" class="whoami" data-go="gname">${av({name:me.name,color:me.color},'sm')}Giochi come <b>${esc(me.name)}</b><span>cambia</span></button>`:''}
-    <div class="foot2"><button type="button" class="linkbtn plain" data-go="rules">Come si gioca</button><span aria-hidden="true">·</span><button type="button" class="linkbtn plain" data-go="login">Accedi per statistiche e amici</button></div>`,
+    <button type="button" class="howbtn" data-go="rules"><span>❓</span>Come si gioca</button>
+    <div class="foot2"><button type="button" class="linkbtn plain" data-go="login">Accedi per statistiche e amici</button></div>`,
 
   username:()=>{const changing=!!profile;return`
     <div class="topline">${changing?`<button type="button" class="iconbtn" data-go="back" aria-label="Indietro">${ICON.back}</button>`:'<span></span>'}<span class="lbl" style="margin:0">${changing?'Cambia nome utente':'Ultimo passo'}</span><span></span></div>
@@ -132,7 +133,7 @@ const SCREENS={
     ${friends.accepted.length?`<div class="sechead"><h3>Amici online · ${on.length}</h3><button type="button" class="linkbtn" data-go="amici">Vedi tutti</button></div>
     <div class="fstrip">${on.map(f=>{const o=onlineMap[f.id]||{};return`<button type="button" class="fbub" data-go="${o.room?'join-friend':'challenge'}" data-id="${f.id}">${av({name:f.username,color:f.color},'lg')}<i class="${o.room?'busy':''}"></i><span>${nm(f)}</span></button>`}).join('')||'<p class="empty" style="text-align:left;padding:6px 2px">Nessun amico online adesso</p>'}</div>`
     :`<button type="button" class="addfr" data-go="amici"><span class="pi sm">${ICON.people}</span><span><b>Aggiungi i tuoi amici</b><small>Poi li inviti nella tua stanza con un tocco</small></span></button>`}
-    <div class="foot2"><button type="button" class="linkbtn plain" data-go="rules">Come si gioca</button></div>`},
+    <button type="button" class="howbtn" data-go="rules"><span>❓</span>Come si gioca</button>`},
 
   entra:()=>{const invs=profile?invites:[];return`
     <div class="topline"><button type="button" class="iconbtn" data-go="back" aria-label="Indietro">${ICON.back}</button><b class="ttl">Entra in una stanza</b><span></span></div>
@@ -281,7 +282,13 @@ function openNameSheet(next,room){
     const ok=await ensureIdentity();b.disabled=false;if(ok){close();buzz(15);next&&next()}};
   document.body.appendChild(m);setTimeout(()=>i.focus(),300);
 }
-function openRules(){openNotes('rules')}
+function openRules(){
+  const m=document.createElement('div');m.className='modal';
+  m.innerHTML=`<div class="sheet notes" role="dialog" aria-label="Come si gioca"><div class="grab"></div><h2 style="margin:4px 0 4px">Come si gioca</h2>${howtoHtml()}<button class="btn primary big close" type="button" style="margin-top:20px">Ho capito</button></div>`;
+  const close=()=>{m.classList.add('closing');setTimeout(()=>m.remove(),200)};
+  m.addEventListener('click',e=>{if(e.target===m||e.target.closest('.close'))close()});
+  document.body.appendChild(m);
+}
 function createRoom(){invitedHere=new Set();state=newState();enterRoom(roomCode(),true)}
 async function joinRoom(c){
   if(!profile&&!me.name){pendingRoom=c;show('welcome');return}
@@ -611,27 +618,20 @@ function howtoHtml(){
     <div class="hcard hwin"><span class="hic">🏆</span><p>Tutti fanno il Sensitivo lo stesso numero di volte.<br><b>Vince chi ha più punti.</b></p></div>
   </div>`;
 }
-function renderVer(){const b=$('#verBtn');if(!b)return;const seen=ls.get('sintonia_ver')===VERSION;b.innerHTML=`Sintonia <b>v${VERSION}</b> · Novità e regole${seen?'':'<span class="dot"></span>'}`}
-function openNotes(tab){
-  if(typeof tab!=='string')tab='news';
+function renderVer(){const b=$('#verBtn');if(!b)return;const seen=ls.get('sintonia_ver')===VERSION;b.innerHTML=`Sintonia - ver <b>${VERSION}</b>${seen?'':'<span class="dot"></span>'}`;b.setAttribute('aria-label','Novità della versione '+VERSION)}
+function openNotes(){
   ls.set('sintonia_ver',VERSION);renderVer();
   const m=document.createElement('div');m.className='modal';
-  const news=()=>NOTES.map((n,k)=>`<div class="pn ${k===0?'latest':''}">
+  const news=NOTES.map((n,k)=>`<div class="pn ${k===0?'latest':''}">
       <div class="pnh"><span class="pnv">v${n.v}</span>${k===0?'<span class="pnnow">attuale</span>':''}<small>${esc(n.d)}</small></div>
       ${n.first?'<p class="pnfirst">🎉 Prima versione di Sintonia. Benvenuto!</p>':`<ul class="pnl">${n.items.map(([t,x])=>`<li><span class="ptag ${NTAG[t][1]}">${NTAG[t][0]}</span><span>${esc(x)}</span></li>`).join('')}</ul>`}
     </div>`).join('');
-  const draw=()=>{
-    m.innerHTML=`<div class="sheet notes" role="dialog" aria-label="Novità e regole"><div class="grab"></div>
-      <div class="seg wide" style="margin-bottom:16px"><button type="button" data-t="news" class="${tab==='news'?'on':''}">Novità</button><button type="button" data-t="rules" class="${tab==='rules'?'on':''}">Come si gioca</button></div>
-      ${tab==='news'?news():howtoHtml()}
-      <button class="btn ghost big close" type="button" style="margin-top:18px">Chiudi</button></div>`;
-    m.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{tab=b.dataset.t;draw();m.querySelector('.sheet').scrollTop=0});
-  };
+  m.innerHTML=`<div class="sheet notes" role="dialog" aria-label="Novità"><div class="grab"></div><h2 style="margin:4px 0 14px">Novità</h2>${news}<button class="btn ghost big close" type="button" style="margin-top:18px">Chiudi</button></div>`;
   const close=()=>{m.classList.add('closing');setTimeout(()=>m.remove(),200)};
   m.addEventListener('click',e=>{if(e.target===m||e.target.closest('.close'))close()});
-  draw();document.body.appendChild(m);
+  document.body.appendChild(m);
 }
-$('#verBtn').addEventListener('click',()=>openNotes('news'));
+$('#verBtn').addEventListener('click',()=>openNotes());
 
 // ===== Nuova password (dal link dell'email) =====
 function openNewPassword(){
