@@ -566,7 +566,6 @@ const VERSION='1.1';
 // tipi di voce: n = nuovo, m = migliorato, c = corretto
 const NOTES=[
   {v:'1.1',d:'2 novembre 2026',items:[
-    ['n','Puoi azzerare le tue statistiche dal profilo'],
     ['c','Bug fixes']
   ]},
   {v:'1.0',d:'2 novembre 2026',first:true,items:[]}
