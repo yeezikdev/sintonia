@@ -121,6 +121,14 @@ h3{margin:24px 0 10px;font-size:12px;color:var(--mut);text-transform:uppercase;l
 @keyframes open{to{transform:rotate(180deg)}}
 .dial .zones.grow{animation:zgrow .9s .5s var(--spring) both}
 @keyframes zgrow{from{transform:scale(.4);opacity:0}}
+.dial .ln{transform-box:view-box;transform-origin:110px 110px;transition:transform .2s linear,opacity .35s}
+.dial .ln.pending polygon{opacity:.45}
+.dial .ln.pending circle{stroke:#fff;stroke-dasharray:3 2;animation:spinring 3s linear infinite}
+.dial .ln .ok{opacity:0;transition:opacity .3s}
+.dial .ln.done .ok{opacity:1}
+@keyframes spinring{to{stroke-dashoffset:-20}}
+.livelab{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--acc);background:rgba(255,92,138,.12);border-radius:999px;padding:3px 10px;margin:0 auto}
+.livelab::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--acc);animation:pulse 1.2s infinite}
 .dial .gn{animation:sweep 1s var(--spring) both;animation-delay:var(--d)}
 @keyframes sweep{from{transform:rotate(0deg);opacity:0}}
 .dial .tipglow{animation:pulse 1.6s ease-in-out infinite}
@@ -258,6 +266,7 @@ function confetti(n=140,delay=0){
 // ===== Stato locale =====
 let me=ls.get('sintonia_me')||{id:rid(10),name:''};ls.set('sintonia_me',me);
 let code=null,isHost=false,state=null,channel=null,online=new Set(),lastKey='',myGuess=50,guessRound=-1,clueDraft='',joinTimer=null,lastJoin=0;
+let liveMap={},lastLive=0,liveTimer=null;
 let prevScores={},bumpSet=new Set(),bumpPhase='',seenPlayers=new Set(),lastCard='';
 
 // ===== Quadrante =====
@@ -307,6 +316,11 @@ function dial(o={}){
     const tipY=CY-R+10,r=rot(g.v);
     s+=`<g class="gn" style="--d:${(1.25+i*.16).toFixed(2)}s;transform:rotate(${r}deg)"><polygon points="${CX-2.2},${CY} ${CX},${tipY} ${CX+2.2},${CY}" fill="${g.color}" opacity=".95"/><g style="transform-box:view-box;transform-origin:${CX}px ${tipY}px;transform:rotate(${-r}deg)"><circle cx="${CX}" cy="${tipY}" r="6.5" fill="${g.color}" stroke="#120f1f" stroke-width="1.4"/><text x="${CX}" y="${tipY+3}" text-anchor="middle" font-family="Rubik,sans-serif" font-size="8" font-weight="900" fill="#120f1f">${esc((g.name||'?')[0].toUpperCase())}</text></g></g>`;
   });
+  // lancette in tempo reale (solo per il Sensitivo)
+  if(o.live)o.live.forEach(p=>{
+    const tipY=CY-R+10;
+    s+=`<g class="ln pending" id="ln-${p.id}" style="opacity:0"><polygon points="${CX-2.2},${CY} ${CX},${tipY} ${CX+2.2},${CY}" fill="${p.color}"/><g class="lnt" style="transform-box:view-box;transform-origin:${CX}px ${tipY}px"><circle cx="${CX}" cy="${tipY}" r="6.5" fill="${p.color}" stroke="#120f1f" stroke-width="1.4"/><text x="${CX}" y="${tipY+3}" text-anchor="middle" font-family="Rubik,sans-serif" font-size="8" font-weight="900" fill="#120f1f">${esc((p.name||'?')[0].toUpperCase())}</text><circle class="ok" cx="${CX+6}" cy="${tipY-6}" r="3.6" fill="#7cff6b" stroke="#120f1f" stroke-width="1"/></g></g>`;
+  });
   // lancetta principale
   if(o.needle!=null){
     const c=o.color||'#ff5c8a',tipY=CY-R+7;
@@ -315,10 +329,27 @@ function dial(o={}){
   s+=`<circle cx="${CX}" cy="${CY}" r="10" fill="url(#${id}h)" stroke="#120f1f" stroke-width="1.5"/><circle cx="${CX}" cy="${CY}" r="3.2" fill="#2a2152"/></svg>`;
   return s;
 }
+function sendLive(){
+  if(!channel||!state||state.phase!=='guess'||state.psychicId===me.id)return;
+  const go=()=>{lastLive=Date.now();liveTimer=null;try{channel.send({type:'broadcast',event:'live',payload:{from:me.id,v:myGuess,r:state.round}})}catch(e){}};
+  const wait=90-(Date.now()-lastLive);
+  if(wait<=0)go();else if(!liveTimer)liveTimer=setTimeout(go,wait);
+}
+function paintLive(){
+  const S=state;if(!S||S.phase!=='guess'||S.psychicId!==me.id)return;
+  S.players.forEach(p=>{
+    const el=document.getElementById('ln-'+p.id);if(!el)return;
+    const done=S.guesses[p.id]!=null,v=done?S.guesses[p.id]:liveMap[p.id];
+    if(v==null){el.style.opacity=0;return}
+    const r=rot(v);el.style.transform=`rotate(${r}deg)`;el.style.opacity=done?1:.75;
+    el.classList.toggle('pending',!done);el.classList.toggle('done',done);
+    const t=el.querySelector('.lnt');if(t)t.style.transform=`rotate(${-r}deg)`;
+  });
+}
 function setNeedle(v){const n=document.querySelector('.dial.live .needle');if(n)n.style.transform=`rotate(${rot(v)}deg)`}
 function bindDial(){
   const svg=document.querySelector('.dial.live');if(!svg)return;let drag=false,last=-1;
-  const upd=e=>{const r=svg.getBoundingClientRect();const x=(e.clientX-r.left)/r.width*VW,y=(e.clientY-r.top)/r.height*VH;let a=Math.atan2(CY-y,x-CX);if(a<0)a=x<CX?Math.PI:0;myGuess=Math.round((1-a/Math.PI)*100);setNeedle(myGuess);const b=Math.floor(myGuess/10);if(b!==last){if(last>=0)buzz(4);last=b}};
+  const upd=e=>{const r=svg.getBoundingClientRect();const x=(e.clientX-r.left)/r.width*VW,y=(e.clientY-r.top)/r.height*VH;let a=Math.atan2(CY-y,x-CX);if(a<0)a=x<CX?Math.PI:0;myGuess=Math.round((1-a/Math.PI)*100);setNeedle(myGuess);sendLive();const b=Math.floor(myGuess/10);if(b!==last){if(last>=0)buzz(4);last=b}};
   svg.addEventListener('pointerdown',e=>{drag=true;svg.classList.add('dragging');try{svg.setPointerCapture(e.pointerId)}catch(_){}upd(e)});
   svg.addEventListener('pointermove',e=>{if(drag)upd(e)});
   ['pointerup','pointercancel'].forEach(t=>svg.addEventListener(t,()=>{drag=false;svg.classList.remove('dragging')}));
@@ -384,6 +415,7 @@ async function enterRoomInner(c,host){
     })
     .on('broadcast',{event:'action'},({payload})=>{if(isHost)handle(payload)})
     .on('broadcast',{event:'hello'},()=>{if(isHost)push()})
+    .on('broadcast',{event:'live'},({payload})=>{if(!state||!payload||payload.r!==state.round)return;liveMap[payload.from]=payload.v;paintLive()})
     .on('presence',{event:'sync'},()=>{online=new Set(Object.keys(channel.presenceState()));if(isHost&&state){autoReveal();push()}else render()})
     .subscribe(async st=>{
       if(st==='SUBSCRIBED'){
@@ -460,7 +492,7 @@ const VIEWS={
   guess:()=>{
     const S=state,psy=S.psychicId===me.id,mine=S.guesses[me.id];
     const cb=`<div class="cluebox"><div class="lbl">${psy?'Il tuo indizio':'Indizio di '+esc(nameOf(S.psychicId))}</div><div class="clue">“${esc(S.clue)}”</div></div>`;
-    if(psy)return`${cb}${dial({zones:true,target:S.target})}<div id="ends"></div><p class="hint">Gli altri stanno scegliendo… niente suggerimenti! 🤐</p><div id="status"></div><div id="hostbar"></div>`;
+    if(psy)return`${cb}<div style="text-align:center"><span class="livelab">IN DIRETTA</span></div>${dial({zones:true,target:S.target,live:S.players.filter(p=>p.id!==S.psychicId)})}<div id="ends"></div><p class="hint">Guarda le lancette degli altri muoversi in tempo reale: sono sfumate finché non confermano. Niente suggerimenti! 🤐</p><div id="status"></div><div id="hostbar"></div>`;
     const col=playerOf(me.id).color;
     if(mine!=null)return`${cb}${dial({cover:'closed',needle:mine,color:col})}<div id="ends"></div><p class="okmsg">Risposta inviata ✓</p><button class="btn ghost big" data-a="unguess">Cambia risposta</button><div id="status"></div><div id="hostbar"></div>`;
     return`${cb}${dial({cover:'closed',interactive:true,needle:myGuess,color:col})}<div id="ends"></div>
@@ -503,7 +535,7 @@ function renderTop(){
 function render(){
   if(!state||!code)return;
   const S=state;
-  if(guessRound!==S.round){myGuess=50;clueDraft='';guessRound=S.round}
+  if(guessRound!==S.round){myGuess=50;clueDraft='';guessRound=S.round;liveMap={}}
   renderTop();
   const psy=S.psychicId===me.id,confirmed=S.guesses&&S.guesses[me.id]!=null;
   const key=[S.phase,S.round,psy?'P':'G',isHost?'H':'',S.phase==='clue'&&psy?S.card.join('|'):'',S.phase==='guess'&&!psy?confirmed:''].join('#');
@@ -528,6 +560,7 @@ function updateDyn(){
   const lp=$('#laps');if(lp)lp.innerHTML=[1,2,3].map(v=>`<button data-a="laps" data-v="${v}" class="${S.laps===v?'on':''}">${v}×</button>`).join('');
   const startB=$('#startBtn');if(startB){const few=S.players.length<2;startB.disabled=few;startB.textContent=few?'Servono almeno 2 giocatori':`Inizia la partita (${S.players.length} giocatori)`}
   const st=$('#status');if(st){const gs=S.players.filter(p=>p.id!==S.psychicId);st.innerHTML=`<div class="chips">${gs.map(p=>{const d=S.guesses[p.id]!=null;return`<span class="chip ${d?'done':''} ${online.has(p.id)?'':'off'}">${av(p,'sm')}${esc(p.name)} <span class="st">${d?'✅':'⏳'}</span></span>`}).join('')}</div>`}
+  paintLive();
   const hb=$('#hostbar');if(hb)hb.innerHTML=isHost?`${S.phase==='guess'&&Object.keys(S.guesses).length?'<button class="btn ghost sm" data-a="reveal">Rivela ora</button>':''}<button class="btn ghost sm" data-a="skip">Salta round</button>`:'';
 }
 
@@ -542,8 +575,8 @@ function act(a,el){
     case 'kick':send({type:'kick',id:el.dataset.id});break;
     case 'reroll':send({type:'reroll'});break;
     case 'clue':{const ci=$('#clue');const c=ci?ci.value.trim():'';if(!c){toast('Scrivi un indizio');return}buzz(20);send({type:'clue',clue:c});break}
-    case 'm':myGuess=Math.max(0,myGuess-1);setNeedle(myGuess);break;
-    case 'p':myGuess=Math.min(100,myGuess+1);setNeedle(myGuess);break;
+    case 'm':myGuess=Math.max(0,myGuess-1);setNeedle(myGuess);sendLive();break;
+    case 'p':myGuess=Math.min(100,myGuess+1);setNeedle(myGuess);sendLive();break;
     case 'guess':buzz(25);send({type:'guess',v:myGuess});break;
     case 'unguess':send({type:'unguess'});break;
     case 'reveal':send({type:'reveal'});break;
@@ -556,8 +589,9 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b&
 
 
 // ===== Versione e patch notes =====
-const VERSION='1.2';
+const VERSION='1.3';
 const NOTES=[
+  {v:'1.3',d:'2 novembre 2026',t:'Lancette in diretta',l:['Il Sensitivo vede in tempo reale le lancette degli altri mentre le muovono','Le lancette restano sfumate finché il giocatore non conferma, poi diventano piene con un segno verde','Etichetta "In diretta" sul quadrante del Sensitivo']},
   {v:'1.2',d:'2 novembre 2026',t:'Grafica nuova',l:['Quadrante ridisegnato con cornice luminosa, tacche e lancetta che brilla','Sportello che si apre sul bersaglio al momento della rivelazione','Le lancette di tutti scattano una alla volta verso la risposta','Coriandoli quando qualcuno fa centro e alla fine della partita','Podio finale con colonne che salgono e corona sul vincitore','Sfondo animato, avatar colorati con l\'iniziale e barra dei round','Vibrazione leggera mentre muovi la lancetta','Versione e novità in fondo alla pagina']},
   {v:'1.1',d:'2 novembre 2026',t:'Connessione più affidabile',l:['Risolto il blocco su "Crea una stanza"','Messaggio chiaro se il server di gioco non risponde','Avviso se il gioco è aperto come file o in anteprima']},
   {v:'1.0',d:'2 novembre 2026',t:'Prima versione',l:['Stanze con codice di 4 lettere, QR e link d\'invito','Ognuno gioca dal proprio telefono','A turno un Sensitivo, circa 70 carte in italiano','Punti 4/3/2 e classifica finale']}
