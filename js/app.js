@@ -93,7 +93,8 @@ const SCREENS={
       ${resumeBtn()}
     </div>
     ${me.name?`<button type="button" class="whoami" data-go="gname">${av({name:me.name,color:me.color},'sm')}Giochi come <b>${esc(me.name)}</b><span>cambia</span></button>`:''}
-    <div class="foot2"><button type="button" class="linkbtn plain" data-go="login">Accedi per statistiche e amici</button></div>`,
+    <div class="foot2"><button type="button" class="linkbtn plain" data-go="login">Accedi per statistiche e amici</button></div>
+    <yeezik-hub-link></yeezik-hub-link>`,
 
   username:()=>{const changing=!!profile;return`
     <div class="topline">${changing?`<button type="button" class="iconbtn" data-go="back" aria-label="Indietro">${ICON.back}</button>`:'<span></span>'}<span class="lbl" style="margin:0">${changing?'Cambia nome utente':'Ultimo passo'}</span><span></span></div>
@@ -131,7 +132,8 @@ const SCREENS={
     </div>
     ${friends.accepted.length?`<div class="sechead"><h3>Amici online · ${on.length}</h3><button type="button" class="linkbtn" data-go="amici">Vedi tutti</button></div>
     <div class="fstrip">${on.map(f=>{const o=onlineMap[f.id]||{};return`<button type="button" class="fbub" data-go="${o.room?'join-friend':'challenge'}" data-id="${f.id}">${av({name:f.username,color:f.color},'lg')}<i class="${o.room?'busy':''}"></i><span>${nm(f)}</span></button>`}).join('')||'<p class="empty" style="text-align:left;padding:6px 2px">Nessun amico online adesso</p>'}</div>`
-    :`<button type="button" class="addfr" data-go="amici"><span class="pi sm">${ICON.people}</span><span><b>Aggiungi i tuoi amici</b><small>Poi li inviti nella tua stanza con un tocco</small></span></button>`}`},
+    :`<button type="button" class="addfr" data-go="amici"><span class="pi sm">${ICON.people}</span><span><b>Aggiungi i tuoi amici</b><small>Poi li inviti nella tua stanza con un tocco</small></span></button>`}
+    <yeezik-hub-link></yeezik-hub-link>`},
 
   entra:()=>{const invs=profile?invites:[];return`
     <div class="topline"><button type="button" class="iconbtn" data-go="back" aria-label="Indietro">${ICON.back}</button><b class="ttl">Entra in una stanza</b><span></span></div>
