@@ -1,4 +1,5 @@
 // ===== Sintonia · account, amici, inviti, statistiche e schermate fuori dalla stanza =====
+const GAME='sintonia',GAME_NAMES={sintonia:'Sintonia',nomination:'Nomination'};
 let session=null,profile=null,view='welcome',pendingRoom=null,homeErr='';
 let friends={accepted:[],incoming:[],outgoing:[]},invites=[],onlineMap={},profCache={};
 let presenceCh=null,userCh=null,statsCache=null,invitedHere=new Set(),loginMode='login';
@@ -154,7 +155,7 @@ const SCREENS={
     <div id="fresults"></div>
     ${friends.incoming.length?`<h3 class="pink">Richieste · ${friends.incoming.length}</h3><div class="flist">${friends.incoming.map(f=>row(f,`<button type="button" class="iconbtn sm" data-go="decline" data-id="${f.id}" aria-label="Rifiuta">${ICON.x}</button><button type="button" class="btn sm primary" data-go="accept" data-id="${f.id}">Accetta</button>`,'Vuole essere tuo amico','req')).join('')}</div>`:''}
     <h3>Online · ${on.length}</h3>
-    <div class="flist">${on.length?on.map(f=>{const o=onlineMap[f.id];return o.room?row(f,`<button type="button" class="btn sm outline" data-go="join-friend" data-id="${f.id}">Raggiungi</button>`,`<span class="busyt">In una stanza · ${esc(o.room)}</span>`):row(f,`<button type="button" class="btn sm primary" data-go="challenge" data-id="${f.id}">Sfida</button>`,'Online')}).join(''):'<p class="empty">Nessun amico online in questo momento</p>'}</div>
+    <div class="flist">${on.length?on.map(f=>{const o=onlineMap[f.id];return o.room?row(f,`<button type="button" class="btn sm outline" data-go="join-friend" data-id="${f.id}">Raggiungi</button>`,`<span class="busyt">In una stanza · ${esc(o.room)}</span>`):row(f,`<button type="button" class="btn sm primary" data-go="challenge" data-id="${f.id}">Sfida</button>`,o.other?`Sta giocando a ${esc(o.other)}`:'Online')}).join(''):'<p class="empty">Nessun amico online in questo momento</p>'}</div>
     <h3>Offline · ${off.length}</h3>
     <div class="flist dim">${off.length?off.map(f=>row(f,`<button type="button" class="iconbtn sm" data-go="unfriend" data-id="${f.id}" aria-label="Rimuovi ${esc(f.username)}">${ICON.x}</button>`,'Offline')).join(''):`<p class="empty">${friends.accepted.length?'Tutti i tuoi amici sono online':'Cerca il nome utente di un amico qui sopra per aggiungerlo'}</p>`}</div>
     ${friends.outgoing.length?`<h3>Richieste inviate · ${friends.outgoing.length}</h3><div class="flist dim">${friends.outgoing.map(f=>row(f,`<button type="button" class="linkbtn" data-go="cancelreq" data-id="${f.id}">Annulla</button>`,'In attesa')).join('')}</div>`:''}`},
@@ -400,7 +401,7 @@ async function loadFriends(){
 async function loadInvites(){
   if(!profile)return;
   const since=new Date(Date.now()-3*3600e3).toISOString();
-  const {data}=await sbc.from('invites').select('*').eq('to_id',profile.id).gte('created_at',since).order('created_at',{ascending:false}).limit(10);
+  const {data}=await sbc.from('invites').select('*').eq('to_id',profile.id).eq('game',GAME).gte('created_at',since).order('created_at',{ascending:false}).limit(10);
   invites=data||[];await fetchProfiles(invites.map(i=>i.from_id));
 }
 async function searchFriends(keep){
@@ -433,7 +434,7 @@ function renderInviteFriends(){
   const list=[...friends.accepted].sort((a,b)=>(isFriendOnline(b.id)-isFriendOnline(a.id))||a.username.localeCompare(b.username));
   box.innerHTML=`<h3>Invita dagli amici</h3><div class="flist">${list.map(f=>{const on=isFriendOnline(f.id),o=onlineMap[f.id]||{};
     const right=inRoom.has(f.id)?`<span class="tag ok">${ICON.check}Entrato</span>`:invitedHere.has(f.id)?'<span class="tag gold">Invito inviato</span>':`<button type="button" class="btn sm ${on?'primary':'outline'}" data-go="invite" data-id="${f.id}">Invita</button>`;
-    const sub=inRoom.has(f.id)?'Nella stanza':on?(o.room?`In un'altra stanza · ${esc(o.room)}`:'Online'):'Offline · riceverà l’invito';
+    const sub=inRoom.has(f.id)?'Nella stanza':on?(o.room?`In un'altra stanza · ${esc(o.room)}`:o.other?`Sta giocando a ${esc(o.other)}`:'Online'):'Offline · riceverà l’invito';
     return`<div class="frow ${on?'':'dim1'}">${av({name:f.username,color:f.color})}${on?'<i class="ondot"></i>':''}<div class="fi"><b>${nm(f)}</b><small>${sub}</small></div>${right}</div>`}).join('')}</div>`;
 }
 
@@ -445,11 +446,12 @@ function startUserRealtime(){
   presenceCh=sbc.channel('yeezik-online',{config:{presence:{key:profile.id}}});
   presenceCh.on('presence',{event:'sync'},()=>{
     const st=presenceCh.presenceState(),m={};
-    for(const [k,arr] of Object.entries(st)){const last=arr[arr.length-1]||{};m[k]={room:arr.map(x=>x.room).find(Boolean)||null,username:last.username}}
+    for(const [k,arr] of Object.entries(st)){const last=arr[arr.length-1]||{};const r=arr.find(x=>x.room);const g=r?(r.game||GAME):null;m[k]={room:g===GAME?r.room:null,other:r&&g!==GAME?(GAME_NAMES[g]||'un altro gioco'):null,username:last.username}}
     onlineMap=m;if(code)renderInviteFriends();else if(view==='home'||view==='amici')refresh();
   }).subscribe(s=>{if(s==='SUBSCRIBED')trackPresence()});
   userCh=sbc.channel('user-'+profile.id)
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'invites',filter:'to_id=eq.'+profile.id},async({new:inv})=>{
+      if(inv.game&&inv.game!==GAME)return;
       await fetchProfiles([inv.from_id]);invites=[inv,...invites.filter(x=>x.id!==inv.id)];
       const p=profCache[inv.from_id];buzz([30,60,30]);SFX.chime();
       if(code)toast(`${p?p.username:'Un amico'} ti invita nella stanza ${inv.room_code}`,5000);
@@ -460,7 +462,7 @@ function startUserRealtime(){
     .subscribe();
 }
 function stopUserRealtime(){try{presenceCh&&sbc.removeChannel(presenceCh)}catch(e){}try{userCh&&sbc.removeChannel(userCh)}catch(e){}presenceCh=null;userCh=null;onlineMap={}}
-function trackPresence(){if(presenceCh&&profile)try{presenceCh.track({username:profile.username,room:code||null})}catch(e){}}
+function trackPresence(){if(presenceCh&&profile)try{presenceCh.track({username:profile.username,room:code||null,game:code?GAME:null})}catch(e){}}
 function onEnteredRoom(c){trackPresence();try{history.pushState({sint:'room'},'','?r='+c)}catch(e){}}
 function onLeftRoom(){invitedHere=new Set();setTimeout(trackPresence,0)}
 
@@ -563,9 +565,12 @@ async function scanQR(){
 }
 
 // ===== Versione e patch notes =====
-const VERSION='1.1';
+const VERSION='1.2';
 // tipi di voce: n = nuovo, m = migliorato, c = corretto
 const NOTES=[
+  {v:'1.2',d:'3 novembre 2026',items:[
+    ['c','Gli inviti e il tasto Raggiungi portano solo a stanze di Sintonia, non di altri giochi Yeezik']
+  ]},
   {v:'1.1',d:'2 novembre 2026',items:[
     ['c','Bug fixes']
   ]},
